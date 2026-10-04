@@ -2,6 +2,12 @@
 
 This file is the release changelog, with one `## <version> - <title>` entry per release, newest first. The Cursor-to-Claude rewrite rules live in [`tools/substitutions.json`](tools/substitutions.json), and the [sync boundary](CONTRIBUTING.md#the-sync-boundary) in `CONTRIBUTING.md` defines how a change to upstream's skill content is declared.
 
+## 0.9.65 - sync to upstream e43c7ee (v0.15.9)
+
+The upstream pin moves from `23e4138` to `e43c7ee`, upstream v0.15.9. It adds the `correct` skill, which turns a mistake agents keep repeating into a check that makes it impossible, so the package now carries 33 public skills. `architect` gains design red flags that resist agent mistakes, and the perf-issue playbook uses bare performance mantras in step 2. `tools/forks.json` drops `watch-pr/transport.test.ts`, which is now port-only.
+
+Measured with `bun tools/sync.mjs pstack e43c7ee`: 5 files updated clean, 1 added, 1 merged three-way, 76 unchanged, 36 excluded, and no conflicts.
+
 ## 0.9.64 - sync to upstream 23e4138 (v0.15.6)
 
 The upstream pin moves from `12d587d` to `23e4138`, upstream v0.15.6, one commit. It adds the `benchmark-checklist` skill and the `principle-explain-the-number` principle, which together vet a measured speedup or regression before anyone reports or acts on it. `poteto-mode` triggers `benchmark-checklist` on a benchmark and indexes the new principle, so the package now carries 32 public skills and 24 principles.
