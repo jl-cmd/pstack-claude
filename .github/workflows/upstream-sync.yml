@@ -15,10 +15,9 @@ jobs:
   sync:
     name: Sync pstack to the newest upstream release
     runs-on: ubuntu-latest
-    # Pushes a clean sync to main, or opens a pull request for one that needs review.
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write # push a clean sync to main or a review branch
+      pull-requests: write # open the review pull request for a sync that needs one
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
