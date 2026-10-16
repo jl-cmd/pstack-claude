@@ -7,7 +7,9 @@ import type {
   PrContext,
   PullRequestFacts,
   Repository,
+  RawReviewThread,
   ReviewThread,
+  ReviewThreadPage,
   RollupPage,
 } from "./types.ts";
 import { parsePullRequest } from "./github.ts";
@@ -15,13 +17,20 @@ import { parsePrNumber } from "./types.ts";
 
 export interface FakeReaderOptions {
   readonly facts?: Partial<Omit<PullRequestFacts, "context">>;
+  readonly factsOnReread?: Partial<Omit<PullRequestFacts, "context">>;
   readonly fastPath?: ChecksFastPath;
   readonly rollupPages?: readonly RollupPage[];
   readonly threads?: readonly ReviewThread[];
+  readonly threadPages?: readonly ReviewThreadPage[];
   readonly commitRollups?: readonly CommitRollup[];
   readonly openPullRequests?: readonly OpenPullRequest[];
+  readonly defaultBranch?: string;
   readonly origin?: Repository | null;
   readonly current?: PrContext;
+}
+
+function toRawThread(thread: ReviewThread): RawReviewThread {
+  return { id: thread.id, firstComment: thread.firstComment, resolved: false };
 }
 
 export function passingCheck(name = "ci"): Check {
@@ -80,6 +89,8 @@ export function fakeReader(
     isDraft: false,
   };
   let page = 0;
+  let reads = 0;
+  let threadPage = 0;
   return {
     calls,
     async originRepo() {
@@ -94,20 +105,27 @@ export function fakeReader(
     },
     async pullRequest(requested) {
       calls.push("pullRequest");
-      return parsePullRequest({ ...defaults, ...options.facts }, requested);
-    },
-    async revision(requested) {
-      calls.push("revision");
-      return {
-        context: requested,
-        baseRefOid: options.facts?.baseRefOid ?? "base",
-        headRefOid: options.facts?.headRefOid ?? "head",
-        baseRefName: options.facts?.baseRefName ?? defaults.baseRefName,
+      reads += 1;
+      const facts = {
+        ...defaults,
+        ...options.facts,
+        ...(reads > 1 ? options.factsOnReread : {}),
       };
+      return parsePullRequest(
+        {
+          ...facts,
+          baseRef: { target: { oid: facts.baseRefOid } },
+        },
+        requested
+      );
     },
     async openPullRequests() {
       calls.push("openPullRequests");
       return options.openPullRequests ?? [];
+    },
+    async defaultBranch() {
+      calls.push("defaultBranch");
+      return options.defaultBranch ?? "main";
     },
     async checksFastPath() {
       calls.push("checksFastPath");
@@ -115,17 +133,21 @@ export function fakeReader(
     },
     async checkRollupPage(_requested, after) {
       calls.push(`checkRollupPage:${after ?? "null"}`);
+      const pages = options.rollupPages ?? [];
       return (
-        options.rollupPages?.[page++] ?? {
+        pages[Math.min(page++, pages.length - 1)] ?? {
           kind: "contexts",
           checks: [],
           endCursor: null,
         }
       );
     },
-    async reviewThreads() {
-      calls.push("reviewThreads");
-      return options.threads ?? [];
+    async reviewThreadPage(_requested, after) {
+      calls.push(`reviewThreadPage:${after ?? "null"}`);
+      return options.threadPages?.[threadPage++] ?? {
+        threads: (options.threads ?? []).map(toRawThread),
+        endCursor: null,
+      };
     },
     async commitRollups() {
       calls.push("commitRollups");

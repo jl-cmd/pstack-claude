@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
 import { candidates, findTranscript, openingPrompt } from "../plugins/pstack/skills/reflect/scripts/find-transcript.mjs";
+import { removeDuring } from "./remove-during.mjs";
 
 const script = join(import.meta.dir, "../plugins/pstack/skills/reflect/scripts/find-transcript.mjs");
 const noNode = spawnSync("node", ["--version"]).status !== 0;
@@ -83,7 +84,7 @@ describe("find-transcript", () => {
     const nested = transcript(dir, "n1/n1.jsonl", [meta], 300);
     const sub = transcript(dir, "n1/subagents/child.jsonl", [meta], 200);
     writeFileSync(join(dir, "notes.txt"), "not a transcript");
-    expect(candidates(dir)).toEqual([nested, sub, flat]);
+    expect(candidates(dir).map(({ path }) => path)).toEqual([nested, sub, flat]);
   });
 
   test("findTranscript returns the newest transcript whose opening prompt carries the fragment", async () => {
@@ -93,6 +94,46 @@ describe("find-transcript", () => {
     transcript(dir, "other.jsonl", [meta, user("unrelated")], 300);
     expect(await findTranscript(dir, "issue 59")).toBe(newer);
     expect(await findTranscript(dir, "nothing matches this")).toBeNull();
+  });
+
+  test("a transcript deleted after enumeration does not abort the scan", async () => {
+    const dir = tempDir();
+    transcript(dir, "newest.jsonl", [meta, user("unrelated prompt")], 300);
+    const removed = transcript(dir, "removed.jsonl", [meta, user("another prompt")], 200);
+    const older = transcript(dir, "older.jsonl", [meta, user("resume the audit")], 100);
+    const search = findTranscript(dir, "resume the audit");
+    // Enumeration has completed; the first streamed read yields before this candidate opens.
+    rmSync(removed);
+    expect(await search).toBe(older);
+  });
+
+  test.skipIf(noNode)(
+    "a session directory or transcript removed while the tree is listed is skipped (skipped without node)",
+    () => {
+      const dir = tempDir();
+      const kept = transcript(dir, "kept.jsonl", [meta], 100);
+      const flat = transcript(dir, "flat.jsonl", [meta], 200);
+      transcript(dir, "s1/s1.jsonl", [meta], 300);
+      const body = `const { candidates } = await import(${JSON.stringify(script)});
+        console.log(JSON.stringify(candidates(${JSON.stringify(dir)}).map(({ path }) => path)));`;
+      const run = removeDuring("readdirSync", dir, [join(dir, "s1"), flat], body);
+      expect(run.stderr).toBe("");
+      expect(JSON.parse(run.stdout)).toEqual([kept]);
+    },
+  );
+
+  test("other candidate read errors still propagate", async () => {
+    const dir = tempDir();
+    transcript(dir, "newest.jsonl", [meta, user("unrelated prompt")], 300);
+    const changed = transcript(dir, "changed.jsonl", [meta], 200);
+    const search = findTranscript(dir, "audit");
+    rmSync(changed);
+    mkdirSync(changed);
+    await expect(search).rejects.toMatchObject({ code: "EISDIR" });
+  });
+
+  test("a missing project directory still reports the filesystem error", async () => {
+    await expect(findTranscript(join(tempDir(), "missing"), "audit")).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   test("a truncated trailing line does not abort the scan", async () => {
@@ -181,6 +222,78 @@ describe("find-transcript", () => {
     const pi = transcript(dir, "--work-repo--/s.jsonl", [piHeader, piMessage("u1", null, "user", "review issue 59 on Pi")], 200);
     expect(await findTranscript(dir, "on Pi")).toBe(pi);
     expect(await findTranscript(dir, "issue 59")).toBe(pi);
+  });
+
+  // Copilot's layout: <session-state>/<id>/events.jsonl, a session.start event,
+  // then one event per line with each typed prompt as a user.message.
+  const copilotStart = JSON.stringify({ type: "session.start", data: { sessionId: "c1", context: { cwd: process.cwd() } } });
+  const copilotEvent = (type, content) => JSON.stringify({ type, data: { content } });
+
+  test("a Copilot session's opening prompt is its first user.message, not the injected context", async () => {
+    const dir = tempDir();
+    const path = transcript(dir, "c1/events.jsonl", [
+      copilotStart,
+      copilotEvent("hook.end", "routing context"),
+      copilotEvent("user.message", ""),
+      copilotEvent("user.message", "review issue 59 on Copilot"),
+      copilotEvent("user.message", "a later prompt"),
+    ], 100);
+    expect(await openingPrompt(path)).toBe("review issue 59 on Copilot");
+  });
+
+  test("findTranscript finds a Copilot session among Claude transcripts in the same tree", async () => {
+    const dir = tempDir();
+    transcript(dir, "claude.jsonl", [meta, user("review issue 59")], 100);
+    const copilot = transcript(dir, "c1/events.jsonl", [copilotStart, copilotEvent("user.message", "review issue 59 on Copilot")], 200);
+    expect(await findTranscript(dir, "on Copilot")).toBe(copilot);
+  });
+
+  test.skipIf(noNode)("the CLI scopes Copilot sessions to the workspace when opening prompts match", () => {
+    const dir = tempDir();
+    const sessions = join(dir, "session-state");
+    const workspace = join(dir, "work");
+    const unrelated = join(dir, "private");
+    mkdirSync(workspace);
+    mkdirSync(unrelated);
+    const start = (cwd) => JSON.stringify({ type: "session.start", data: { context: { cwd } } });
+    const prompt = copilotEvent("user.message", "fix the failing tests");
+    const current = transcript(sessions, "current/events.jsonl", [start(workspace), prompt], 100);
+    transcript(sessions, "unrelated/events.jsonl", [start(unrelated), prompt], 200);
+    transcript(sessions, "missing-cwd/events.jsonl", [start(undefined), prompt], 300);
+    transcript(sessions, "deleted-workspace/events.jsonl", [start(join(dir, "deleted")), prompt], 400);
+
+    const run = (cwd, args = []) => spawnSync("node", [script, sessions, "fix the failing tests", ...args], { cwd, encoding: "utf8" });
+    const hit = run(workspace);
+    expect(hit.status).toBe(0);
+    expect(hit.stdout.trim()).toBe(current);
+    const explicit = run(unrelated, [workspace]);
+    expect(explicit.status).toBe(0);
+    expect(explicit.stdout.trim()).toBe(current);
+    const link = join(dir, "linked-work");
+    symlinkSync(workspace, link);
+    const alias = run(unrelated, [link]);
+    expect(alias.status).toBe(0);
+    expect(alias.stdout.trim()).toBe(current);
+    rmSync(current);
+    const miss = run(workspace);
+    expect(miss.status).toBe(1);
+    expect(miss.stdout).toBe("");
+    expect(miss.stderr).toContain("no transcript");
+  });
+
+  test("a Codex rollout is refused by name instead of read as an empty Claude transcript", async () => {
+    const dir = tempDir();
+    const rollout = transcript(
+      dir,
+      "rollout.jsonl",
+      [
+        JSON.stringify({ type: "session_meta", payload: { id: "r-1", cwd: "/work/repo" } }),
+        JSON.stringify({ type: "response_item", payload: { type: "message", role: "user", content: [{ type: "input_text", text: "ship the release" }] } }),
+      ],
+      100,
+    );
+    await expect(openingPrompt(rollout)).rejects.toThrow(/Codex rollout/);
+    await expect(findTranscript(dir, "ship the release")).rejects.toThrow(/Codex rollout/);
   });
 
   test("the CLI prints the path and exits 1 when nothing matches", () => {

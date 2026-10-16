@@ -4,95 +4,164 @@ on:
   schedule:
     - cron: "23 7 * * *"
   workflow_dispatch:
+    inputs:
+      target_branch:
+        description: Branch to sync, main or sync-proof/*
+        default: main
 
 permissions: {}
 
 concurrency:
-  group: upstream-sync
+  group: upstream-sync-${{ inputs.target_branch || 'main' }}
   cancel-in-progress: false
 
+env:
+  UPSTREAM_REPOSITORY: michael-denyer/pstack-claude
+  UPSTREAM_BRANCH: main
+  FORK_OWNED_PATHS: .github
+  TARGET_BRANCH: ${{ inputs.target_branch || 'main' }}
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  sync:
-    name: Sync pstack to the newest upstream release
+  build:
+    name: Build and test upstream's tree with this fork's paths
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
-      contents: write # push a clean sync to main or a review branch
-      pull-requests: write # open the review pull request for a sync that needs one
+      contents: read
+    outputs:
+      fork_commit: ${{ steps.build.outputs.fork_commit }}
+      upstream_commit: ${{ steps.build.outputs.upstream_commit }}
+      tree: ${{ steps.build.outputs.tree }}
+    steps:
+      - name: Check the target branch
+        run: |
+          case "$TARGET_BRANCH" in
+            main | sync-proof/*) ;;
+            *) echo "upstream sync targets main or sync-proof/* only, got ${TARGET_BRANCH}"; exit 1 ;;
+          esac
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Test the tree builder
+        run: .github/upstream-sync/build-tree.test.sh
+      - name: Build the tree and check this branch for drift
+        id: build
+        run: |
+          fork_commit=$(git rev-parse HEAD)
+          synced_commit=$(cat .github/upstream-commit)
+          git fetch --quiet --depth=1 "https://github.com/${UPSTREAM_REPOSITORY}.git" "${synced_commit}"
+          git fetch --quiet --depth=1 "https://github.com/${UPSTREAM_REPOSITORY}.git" "${UPSTREAM_BRANCH}"
+          upstream_commit=$(git rev-parse FETCH_HEAD)
+          rebuilt_tree=$(.github/upstream-sync/build-tree.sh "$synced_commit" "$fork_commit")
+          if [ "$rebuilt_tree" != "$(git rev-parse 'HEAD^{tree}')" ]; then
+            echo "::error::${TARGET_BRANCH} changed paths outside FORK_OWNED_PATHS (${FORK_OWNED_PATHS}). A sync would revert them:"
+            git diff --stat "$rebuilt_tree" HEAD
+            exit 1
+          fi
+          tree=$(.github/upstream-sync/build-tree.sh "$upstream_commit" "$fork_commit")
+          {
+            echo "fork_commit=$fork_commit"
+            echo "upstream_commit=$upstream_commit"
+          } >> "$GITHUB_OUTPUT"
+          if [ "$tree" = "$(git rev-parse 'HEAD^{tree}')" ]; then
+            echo "${TARGET_BRANCH} already matches ${UPSTREAM_REPOSITORY}@${upstream_commit}"
+            exit 0
+          fi
+          echo "tree=$tree" >> "$GITHUB_OUTPUT"
+          git diff --stat HEAD "$tree"
+          git read-tree --reset -u "$tree"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        if: steps.build.outputs.tree != ''
+        with:
+          bun-version: "1.3.14"
+      - name: Test the built tree
+        if: steps.build.outputs.tree != ''
+        run: |
+          bun install --frozen-lockfile
+          bun tools/generate.mjs --check
+          bun test tests/
+
+  push:
+    name: Push the sync commit
+    needs: build
+    if: needs.build.outputs.tree != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # push the sync commit to the target branch
+      actions: write # start CI and Security on the pushed commit
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
+          ref: ${{ needs.build.outputs.fork_commit }}
+          fetch-depth: 1
           persist-credentials: false
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: "1.3.14"
-      - name: Read the pinned and newest upstream versions
-        id: versions
-        run: |
-          remote=$(jq -r .remote tools/upstream.json)
-          pinned_sha=$(jq -r .components.pstack.sha tools/upstream.json)
-          git clone --quiet --filter=blob:none --no-checkout "$remote" "$RUNNER_TEMP/upstream"
-          newest_sha=$(git -C "$RUNNER_TEMP/upstream" log -1 --format=%h origin/HEAD -- pstack)
-          pinned_version=$(git -C "$RUNNER_TEMP/upstream" show "$pinned_sha:pstack/.cursor-plugin/plugin.json" | jq -r .version)
-          newest_version=$(git -C "$RUNNER_TEMP/upstream" show "$newest_sha:pstack/.cursor-plugin/plugin.json" | jq -r .version)
-          echo "Pinned upstream $pinned_version at $pinned_sha, newest $newest_version at $newest_sha"
-          {
-            echo "newest_sha=$newest_sha"
-            echo "pinned_sha=$pinned_sha"
-            echo "newest_version=$newest_version"
-            echo "changed=$([ "$pinned_version" != "$newest_version" ] && echo true || echo false)"
-          } >> "$GITHUB_OUTPUT"
-      - name: Sync, regenerate, and test
-        id: sync
-        if: steps.versions.outputs.changed == 'true'
+      - name: Rebuild the tested tree and commit it
+        id: commit
         env:
-          NEWEST_SHA: ${{ steps.versions.outputs.newest_sha }}
-          PINNED_SHA: ${{ steps.versions.outputs.pinned_sha }}
-          NEWEST_VERSION: ${{ steps.versions.outputs.newest_version }}
+          UPSTREAM_COMMIT: ${{ needs.build.outputs.upstream_commit }}
+          TESTED_TREE: ${{ needs.build.outputs.tree }}
         run: |
-          set -o pipefail
-          bun tools/sync.mjs pstack "$NEWEST_SHA" | tee "$RUNNER_TEMP/sync-report.txt"
-          IFS=. read -r major minor patch < VERSION
-          port_version="$major.$minor.$((patch + 1))"
-          echo "$port_version" > VERSION
-          summary=$(grep -E '^(updated|added|merged|deleted|conflicted|unchanged|dry run)' "$RUNNER_TEMP/sync-report.txt" | sed 's/^/- /')
-          entry=$(printf '## %s - sync to upstream %s (v%s)\n\nThe upstream pin moves from \x60%s\x60 to \x60%s\x60, upstream v%s. The nightly upstream sync workflow produced this entry from \x60bun tools/sync.mjs pstack %s\x60:\n\n%s\n' \
-            "$port_version" "$NEWEST_SHA" "$NEWEST_VERSION" "$PINNED_SHA" "$NEWEST_SHA" "$NEWEST_VERSION" "$NEWEST_SHA" "$summary")
-          ENTRY="$entry" bun -e '
-            const fs = require("node:fs");
-            const text = fs.readFileSync("CHANGES.md", "utf8");
-            const at = text.indexOf("\n## ");
-            fs.writeFileSync("CHANGES.md", text.slice(0, at + 1) + process.env.ENTRY + "\n" + text.slice(at + 1));
-          '
-          echo "port_version=$port_version" >> "$GITHUB_OUTPUT"
-          if bun tools/generate.mjs && bun install --frozen-lockfile && bun test tests/; then
-            echo "clean=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "clean=false" >> "$GITHUB_OUTPUT"
+          git fetch --quiet --depth=1 "https://github.com/${UPSTREAM_REPOSITORY}.git" "${UPSTREAM_COMMIT}"
+          tree=$(.github/upstream-sync/build-tree.sh "$UPSTREAM_COMMIT" HEAD)
+          if [ "$tree" != "$TESTED_TREE" ]; then
+            echo "::error::rebuilt tree ${tree} differs from the tested tree ${TESTED_TREE}"
+            exit 1
           fi
-      - name: Publish a clean sync to main, or open a pull request for review
-        if: steps.versions.outputs.changed == 'true'
+          commit=$(git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit-tree "$tree" -p HEAD \
+            -m "Sync to ${UPSTREAM_REPOSITORY}@${UPSTREAM_COMMIT:0:7}" \
+            -m "Upstream-Commit: ${UPSTREAM_COMMIT}")
+          git log --oneline -1 "$commit"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+      - name: Push the commit and start CI and Security on it
         env:
           GH_TOKEN: ${{ github.token }}
-          CLEAN: ${{ steps.sync.outputs.clean }}
-          PORT_VERSION: ${{ steps.sync.outputs.port_version }}
-          NEWEST_SHA: ${{ steps.versions.outputs.newest_sha }}
-          NEWEST_VERSION: ${{ steps.versions.outputs.newest_version }}
+          COMMIT: ${{ steps.commit.outputs.commit }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          push_remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          message="Sync to upstream $NEWEST_SHA (v$NEWEST_VERSION) ($PORT_VERSION)"
-          if [ "$CLEAN" = "true" ]; then
-            git add -A
-            git commit --quiet -m "$message"
-            git push "$push_remote" HEAD:main
-            exit 0
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" \
+            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" \
+            git push --quiet "https://github.com/${GITHUB_REPOSITORY}.git" "${COMMIT}:refs/heads/${TARGET_BRANCH}"
+          gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$TARGET_BRANCH"
+          gh workflow run security.yml --repo "$GITHUB_REPOSITORY" --ref "$TARGET_BRANCH"
+
+  report:
+    name: Report the sync result in an issue
+    needs: [build, push]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write # open, comment on, or close the sync failure issue
+    steps:
+      - name: Open the sync failure issue, or close it after a good run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SYNC_FAILED: ${{ needs.build.result == 'failure' || needs.push.result == 'failure' }}
+          TITLE: Upstream sync of ${{ inputs.target_branch || 'main' }} failed
+        run: |
+          if ! open_issues=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 500 --json number,title \
+            --jq 'map(select(.title == env.TITLE)) | sort_by(.number) | .[].number'); then
+            echo "::warning::cannot read issues in ${GITHUB_REPOSITORY}; turn on Issues in the repository settings"
+            [ "$SYNC_FAILED" = false ]
+            exit
           fi
-          branch="upstream-sync/$NEWEST_SHA"
-          git checkout -b "$branch"
-          git add -A
-          git commit --quiet -m "$message"
-          git push --force "$push_remote" "$branch"
-          gh pr create --head "$branch" --title "$message" \
-            --body "The sync to upstream v$NEWEST_VERSION left conflict markers or failing tests. Resolve them on this branch, then merge. The workflow run log holds the sync report."
+          if [ "$SYNC_FAILED" = true ]; then
+            body="The upstream sync of ${TARGET_BRANCH} failed: ${RUN_URL}"
+            if [ -n "$open_issues" ]; then
+              gh issue comment "${open_issues%%$'\n'*}" --repo "$GITHUB_REPOSITORY" --body "$body"
+            else
+              gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body "$body"
+            fi
+          else
+            for number in $open_issues; do
+              gh issue close "$number" --repo "$GITHUB_REPOSITORY" --comment "The upstream sync of ${TARGET_BRANCH} passed: ${RUN_URL}"
+            done
+          fi
