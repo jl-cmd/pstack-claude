@@ -18,7 +18,7 @@ concurrency:
 env:
   UPSTREAM_REPOSITORY: michael-denyer/pstack-claude
   UPSTREAM_BRANCH: main
-  FORK_OWNED_PATHS: .github
+  FORK_OWNED_PATHS: .github fork plugins/pstack/hooks/bro-log.py
   TARGET_BRANCH: ${{ inputs.target_branch || 'main' }}
 
 defaults:
@@ -50,6 +50,8 @@ jobs:
           persist-credentials: false
       - name: Test the tree builder
         run: .github/upstream-sync/build-tree.test.sh
+      - name: Test the fork's hooks
+        run: python3 -m unittest discover -v -s fork/tests
       - name: Build the tree and check this branch for drift
         id: build
         run: |
