@@ -93,6 +93,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write # push the sync commit to the target branch
+      actions: write # start CI and Security on the pushed commit
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -115,8 +116,12 @@ jobs:
             commit-tree "$tree" -p HEAD \
             -m "Sync to ${UPSTREAM_REPOSITORY}@${UPSTREAM_COMMIT:0:7}" \
             -m "Upstream-Commit: ${UPSTREAM_COMMIT}")
-          git push --quiet "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${commit}:refs/heads/${TARGET_BRANCH}"
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" \
+            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" \
+            git push --quiet "https://github.com/${GITHUB_REPOSITORY}.git" "${commit}:refs/heads/${TARGET_BRANCH}"
           git log --oneline -1 "$commit"
+          gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$TARGET_BRANCH"
+          gh workflow run security.yml --repo "$GITHUB_REPOSITORY" --ref "$TARGET_BRANCH"
 
   report:
     name: Report a failed sync
