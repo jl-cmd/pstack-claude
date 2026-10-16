@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       target_branch:
-        description: Branch to sync
+        description: Branch to sync, main or sync-proof/*
         default: main
 
 permissions: {}
@@ -15,49 +15,129 @@ concurrency:
   group: upstream-sync-${{ inputs.target_branch || 'main' }}
   cancel-in-progress: false
 
+env:
+  UPSTREAM_REPOSITORY: michael-denyer/pstack-claude
+  UPSTREAM_BRANCH: main
+  FORK_OWNED_PATHS: .github
+  TARGET_BRANCH: ${{ inputs.target_branch || 'main' }}
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  sync:
-    name: Sync the branch to michael-denyer/pstack-claude main
+  build:
+    name: Build and test upstream's tree with this fork's paths
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
-      contents: write # push the sync commit to the target branch
-    env:
-      UPSTREAM_REPOSITORY: michael-denyer/pstack-claude
-      UPSTREAM_BRANCH: main
-      FORK_OWNED_PATH: .github/workflows
-      TARGET_BRANCH: ${{ inputs.target_branch || 'main' }}
+      contents: read
+    outputs:
+      fork_commit: ${{ steps.build.outputs.fork_commit }}
+      upstream_commit: ${{ steps.build.outputs.upstream_commit }}
+      tree: ${{ steps.build.outputs.tree }}
     steps:
+      - name: Check the target branch
+        run: |
+          case "$TARGET_BRANCH" in
+            main | sync-proof/*) ;;
+            *) echo "upstream sync targets main or sync-proof/* only, got ${TARGET_BRANCH}"; exit 1 ;;
+          esac
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.TARGET_BRANCH }}
           fetch-depth: 1
           persist-credentials: false
-      - name: Build upstream's tree with this fork's workflows
+      - name: Build the tree and check this branch for drift
         id: build
         run: |
+          fork_commit=$(git rev-parse HEAD)
+          synced_commit=$(cat .github/upstream-commit)
+          git fetch --quiet --depth=1 "https://github.com/${UPSTREAM_REPOSITORY}.git" "${synced_commit}"
           git fetch --quiet --depth=1 "https://github.com/${UPSTREAM_REPOSITORY}.git" "${UPSTREAM_BRANCH}"
-          upstream_sha=$(git rev-parse FETCH_HEAD)
-          export GIT_INDEX_FILE="$RUNNER_TEMP/sync-index"
-          git read-tree FETCH_HEAD
-          git ls-files -z -- "$FORK_OWNED_PATH" | xargs -0 -r git update-index --force-remove --
-          git ls-tree -r HEAD -- "$FORK_OWNED_PATH" | git update-index --index-info
-          tree=$(git write-tree)
+          upstream_commit=$(git rev-parse FETCH_HEAD)
+          rebuilt_tree=$(.github/upstream-sync/build-tree.sh "$synced_commit" "$fork_commit")
+          if [ "$rebuilt_tree" != "$(git rev-parse 'HEAD^{tree}')" ]; then
+            echo "::error::${TARGET_BRANCH} changed paths outside FORK_OWNED_PATHS (${FORK_OWNED_PATHS}). A sync would revert them:"
+            git diff --stat "$rebuilt_tree" HEAD
+            exit 1
+          fi
+          tree=$(.github/upstream-sync/build-tree.sh "$upstream_commit" "$fork_commit")
+          {
+            echo "fork_commit=$fork_commit"
+            echo "upstream_commit=$upstream_commit"
+          } >> "$GITHUB_OUTPUT"
           if [ "$tree" = "$(git rev-parse 'HEAD^{tree}')" ]; then
-            echo "${TARGET_BRANCH} already matches ${UPSTREAM_REPOSITORY}@${upstream_sha}"
+            echo "${TARGET_BRANCH} already matches ${UPSTREAM_REPOSITORY}@${upstream_commit}"
             exit 0
+          fi
+          echo "tree=$tree" >> "$GITHUB_OUTPUT"
+          git diff --stat HEAD "$tree"
+          git read-tree --reset -u "$tree"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        if: steps.build.outputs.tree != ''
+        with:
+          bun-version: "1.3.14"
+      - name: Test the built tree
+        if: steps.build.outputs.tree != ''
+        run: |
+          bun install --frozen-lockfile
+          bun tools/generate.mjs --check
+          bun test tests/
+
+  push:
+    name: Push the sync commit
+    needs: build
+    if: needs.build.outputs.tree != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # push the sync commit to the target branch
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build.outputs.fork_commit }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Rebuild the tested tree and push it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_COMMIT: ${{ needs.build.outputs.upstream_commit }}
+          TESTED_TREE: ${{ needs.build.outputs.tree }}
+        run: |
+          git fetch --quiet --depth=1 "https://github.com/${UPSTREAM_REPOSITORY}.git" "${UPSTREAM_COMMIT}"
+          tree=$(.github/upstream-sync/build-tree.sh "$UPSTREAM_COMMIT" HEAD)
+          if [ "$tree" != "$TESTED_TREE" ]; then
+            echo "::error::rebuilt tree ${tree} differs from the tested tree ${TESTED_TREE}"
+            exit 1
           fi
           commit=$(git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit-tree "$tree" -p HEAD \
-            -m "Sync to ${UPSTREAM_REPOSITORY}@${upstream_sha:0:7}" \
-            -m "Upstream-Commit: ${upstream_sha}")
-          git diff --quiet FETCH_HEAD "$commit" -- . ":(exclude)${FORK_OWNED_PATH}"
-          git diff --quiet HEAD "$commit" -- "$FORK_OWNED_PATH"
-          echo "commit=$commit" >> "$GITHUB_OUTPUT"
-      - name: Push the sync commit
-        if: steps.build.outputs.commit != ''
+            -m "Sync to ${UPSTREAM_REPOSITORY}@${UPSTREAM_COMMIT:0:7}" \
+            -m "Upstream-Commit: ${UPSTREAM_COMMIT}")
+          git push --quiet "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${commit}:refs/heads/${TARGET_BRANCH}"
+          git log --oneline -1 "$commit"
+
+  report:
+    name: Report a failed sync
+    needs: [build, push]
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write # open or comment on the sync failure issue
+    steps:
+      - name: Open or comment on the sync failure issue
         env:
           GH_TOKEN: ${{ github.token }}
-          COMMIT: ${{ steps.build.outputs.commit }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          git push --quiet "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${COMMIT}:refs/heads/${TARGET_BRANCH}"
-          git log --oneline -1 "$COMMIT"
+          title="Upstream sync failed"
+          body="The upstream sync of ${TARGET_BRANCH} failed: ${RUN_URL}"
+          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"${title}\" in:title" --json number,title \
+            --jq "map(select(.title == \"${title}\")) | sort_by(.number) | .[0].number // empty")
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi
