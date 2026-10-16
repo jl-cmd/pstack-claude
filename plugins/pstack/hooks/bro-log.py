@@ -7,7 +7,8 @@ payload on stdin and does nothing unless the prompt starts with /bro or
 the assistant text after it, finds the open issue titled "/bro log" in
 the session's GitHub repository (or PSTACK_BRO_LOG_REPO), creates it when none is open, and adds
 one comment. It skips a public repository unless PSTACK_BRO_LOG_REPO names
-it. A failed git or gh call, a missing remote, or an unreadable transcript
+it. It skips a transcript line that is not a JSON object, and reads and
+writes UTF-8 whatever the locale. A failed git or gh call, a missing remote, or an unreadable transcript
 goes to stderr with gh's own error text, and the hook exits 0. The hook runs
 async, so it never holds up a prompt. bro-log.sh starts it with python3, or
 with python where python3 does not run, as on many Windows machines.
@@ -25,7 +26,7 @@ REPO_OVERRIDE_VARIABLE = "PSTACK_BRO_LOG_REPO"
 BRO_PROMPT = re.compile(r"^/(?:pstack:)?bro(?:\s+(?P<arguments>.*))?$", re.DOTALL)
 BRO_COMMAND_TAG = re.compile(r"<command-name>/(?:pstack:)?bro</command-name>")
 GITHUB_REMOTE = re.compile(
-    r"github\.com[:/](?P<repository>[^/\s]+/[^/\s]+?)(?:\.git)?/?$"
+    r"(?:^|@|//)github\.com[:/](?P<repository>[^/\s]+/[^/\s]+?)(?:\.git)?/?$"
 )
 COMMENT_LIMIT = 60000
 
@@ -38,7 +39,8 @@ def bro_arguments(prompt):
 
 
 def text_blocks(entry):
-    content = entry.get("message", {}).get("content")
+    message = entry.get("message")
+    content = message.get("content") if isinstance(message, dict) else None
     if isinstance(content, str):
         return [content]
     return [
@@ -62,9 +64,17 @@ def is_bro_entry(text):
     return bro_arguments(text) is not None or BRO_COMMAND_TAG.search(text) is not None
 
 
+def parsed_line(line):
+    try:
+        entry = json.loads(line)
+    except ValueError:
+        return None
+    return entry if isinstance(entry, dict) else None
+
+
 def last_exchange(transcript_path):
     with open(transcript_path, encoding="utf-8") as transcript:
-        entries = [json.loads(line) for line in transcript if line.strip()]
+        entries = [entry for entry in map(parsed_line, transcript) if entry]
     prompt = ""
     texts = []
     collecting = False
@@ -82,7 +92,13 @@ def last_exchange(transcript_path):
 
 def run(arguments, cwd=None, stdin=None):
     return subprocess.run(
-        arguments, cwd=cwd, input=stdin, capture_output=True, text=True, check=True
+        arguments,
+        cwd=cwd,
+        input=stdin,
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        check=True,
     ).stdout.strip()
 
 
@@ -165,7 +181,7 @@ def comment_body(payload, arguments, prompt, reply, cwd):
 
 
 def main():
-    payload = json.load(sys.stdin)
+    payload = json.loads(sys.stdin.buffer.read().decode("utf-8"))
     arguments = bro_arguments(payload.get("prompt", ""))
     if arguments is None:
         return

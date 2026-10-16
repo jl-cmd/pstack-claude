@@ -20,7 +20,7 @@ FAKE_GH = textwrap.dedent(
     state = pathlib.Path(os.environ["FAKE_GH_STATE"])
     calls = json.loads(state.read_text()) if state.exists() else {"calls": [], "issues": []}
     arguments = sys.argv[1:]
-    stdin = sys.stdin.read() if "body=@-" in arguments else ""
+    stdin = sys.stdin.buffer.read().decode("utf-8") if "body=@-" in arguments else ""
     calls["calls"].append({"arguments": arguments, "stdin": stdin})
     paths = [argument for argument in arguments if argument.startswith("repos/")]
     path = paths[0] if paths else ""
@@ -108,9 +108,12 @@ class BroLogTest(unittest.TestCase):
     def tearDown(self):
         self.directory.cleanup()
 
-    def run_hook(self, prompt, entries, command=None, **environment):
+    def run_hook(self, prompt, entries, command=None, torn_tail="", **environment):
         transcript = self.root / "transcript.jsonl"
-        transcript.write_text("".join(json.dumps(entry) + "\n" for entry in entries))
+        transcript.write_text(
+            "".join(json.dumps(entry) + "\n" for entry in entries) + torn_tail,
+            encoding="utf-8",
+        )
         payload = {
             "session_id": "session-1",
             "transcript_path": str(transcript),
@@ -247,6 +250,48 @@ class BroLogTest(unittest.TestCase):
         self.assertEqual(calls, [])
         self.assertIn("bro-log:", completed.stderr)
         self.assertIn("No such remote", completed.stderr)
+
+    def test_non_ascii_text_posts_under_a_non_utf8_locale(self):
+        entries = [user("caf\u00e9 \u2603?"), assistant("r\u00e9sum\u00e9 \U0001f600")]
+        _, calls = self.run_hook(
+            "/bro",
+            entries,
+            command=[sys.executable, "-X", "utf8=0", str(HOOK)],
+            LC_ALL="C",
+            PYTHONCOERCECLOCALE="0",
+            PYTHONUTF8="0",
+        )
+        [comment] = self.comments(calls)
+        self.assertIn("> caf\u00e9 \u2603?", comment["stdin"])
+        self.assertIn("r\u00e9sum\u00e9 \U0001f600", comment["stdin"])
+
+    def test_malformed_and_null_transcript_lines_are_skipped(self):
+        transcript_lines = [user("the question"), {"type": "user", "message": None}, 5]
+        _, calls = self.run_hook(
+            "/bro",
+            [*transcript_lines, assistant("the answer")],
+            torn_tail='{"type": "assi',
+        )
+        body = self.comments(calls)[0]["stdin"]
+        self.assertIn("> the question", body)
+        self.assertIn("the answer", body)
+
+    def test_a_remote_that_only_contains_github_is_not_github(self):
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.checkout),
+                "remote",
+                "set-url",
+                "origin",
+                "https://mirror.example/github.com/acme/app.git",
+            ],
+            check=True,
+        )
+        completed, calls = self.run_hook("/bro", [user("q"), assistant("a")])
+        self.assertEqual(calls, [])
+        self.assertIn("is not a GitHub repository", completed.stderr)
 
     def test_the_launcher_falls_back_to_python_when_python3_fails(self):
         python3 = self.bin_directory / "python3"
