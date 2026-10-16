@@ -35,6 +35,8 @@ reset_worktree
 write README.md fork
 write .github/workflows/ci.yml "fork ci"
 write .github/fork-only.yml fork
+write .github/run.sh fork
+chmod +x .github/run.sh
 fork_commit=$(commit_files fork)
 
 failures=0
@@ -54,6 +56,15 @@ expect "$tree" .github/workflows/ci.yml "fork ci" "owned .github"
 expect "$tree" .github/fork-only.yml fork "owned .github"
 expect "$tree" .github/upstream-only.yml "<missing>" "owned .github"
 expect "$tree" .github/upstream-commit "$upstream_commit" "owned .github"
+if [ "$(git ls-tree "$tree" .github/run.sh | cut -c1-6)" != 100755 ]; then
+  echo "FAIL owned .github: .github/run.sh lost its executable mode"
+  failures=$((failures + 1))
+fi
+
+if FORK_OWNED_PATHS='  ' "$build_tree" "$upstream_commit" "$fork_commit" > /dev/null 2>&1; then
+  echo "FAIL blank FORK_OWNED_PATHS built a tree"
+  failures=$((failures + 1))
+fi
 
 tree=$(FORK_OWNED_PATHS='.git*' "$build_tree" "$upstream_commit" "$fork_commit")
 expect "$tree" .github/workflows/ci.yml "upstream ci" "literal pathspec"

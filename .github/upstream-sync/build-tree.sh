@@ -5,6 +5,10 @@ upstream_commit=$(git rev-parse --verify "$1^{commit}")
 fork_commit=$(git rev-parse --verify "$2^{commit}")
 marker=.github/upstream-commit
 read -ra owned_paths <<< "${FORK_OWNED_PATHS:?}"
+if [ "${#owned_paths[@]}" -eq 0 ]; then
+  echo "FORK_OWNED_PATHS names no path" >&2
+  exit 1
+fi
 export GIT_LITERAL_PATHSPECS=1
 
 index_directory=$(mktemp -d)
