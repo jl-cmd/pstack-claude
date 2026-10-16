@@ -18,7 +18,7 @@ concurrency:
 env:
   UPSTREAM_REPOSITORY: michael-denyer/pstack-claude
   UPSTREAM_BRANCH: main
-  FORK_OWNED_PATHS: .github fork plugins/pstack/hooks/bro-log.py
+  FORK_OWNED_PATHS: .github fork plugins/pstack/hooks/bro-log.py plugins/pstack/hooks/bro-log.sh
   TARGET_BRANCH: ${{ inputs.target_branch || 'main' }}
 
 defaults:

@@ -7,8 +7,10 @@ payload on stdin and does nothing unless the prompt starts with /bro or
 the assistant text after it, finds the open issue titled "/bro log" in
 the session's GitHub repository (or PSTACK_BRO_LOG_REPO), creates it when none is open, and adds
 one comment. It skips a public repository unless PSTACK_BRO_LOG_REPO names
-it. Every failure goes to stderr and the hook exits 0, so a prompt is never
-blocked.
+it. A failed git or gh call, a missing remote, or an unreadable transcript
+goes to stderr with gh's own error text, and the hook exits 0. The hook runs
+async, so it never holds up a prompt. bro-log.sh starts it with python3, or
+with python where python3 does not run, as on many Windows machines.
 """
 
 import datetime
@@ -35,39 +37,25 @@ def bro_arguments(prompt):
     return (match.group("arguments") or "").strip()
 
 
-def is_prompt_entry(entry):
-    if entry.get("type") != "user" or entry.get("isMeta"):
-        return False
-    content = entry.get("message", {}).get("content")
-    if isinstance(content, str):
-        return True
-    return any(
-        block.get("type") == "text"
-        for block in content or []
-        if isinstance(block, dict)
-    )
-
-
-def assistant_text(entry):
+def text_blocks(entry):
     content = entry.get("message", {}).get("content")
     if isinstance(content, str):
         return [content]
     return [
-        block["text"]
+        block.get("text", "")
         for block in content or []
         if isinstance(block, dict) and block.get("type") == "text"
     ]
 
 
+def is_prompt_entry(entry):
+    if entry.get("type") != "user" or entry.get("isMeta"):
+        return False
+    return bool(text_blocks(entry))
+
+
 def prompt_text(entry):
-    content = entry.get("message", {}).get("content")
-    if isinstance(content, str):
-        return content
-    return "\n".join(
-        block["text"]
-        for block in content or []
-        if isinstance(block, dict) and block.get("type") == "text"
-    )
+    return "\n".join(text_blocks(entry))
 
 
 def is_bro_entry(text):
@@ -87,7 +75,7 @@ def last_exchange(transcript_path):
                 prompt = prompt_text(entry)
                 texts = []
         elif collecting and entry.get("type") == "assistant":
-            texts.extend(assistant_text(entry))
+            texts.extend(text_blocks(entry))
     reply = "\n\n".join(text.strip() for text in texts if text.strip())
     return prompt.strip(), reply
 
@@ -219,4 +207,5 @@ if __name__ == "__main__":
         RuntimeError,
         subprocess.CalledProcessError,
     ) as error:
-        print(f"bro-log: {error}", file=sys.stderr)
+        detail = getattr(error, "stderr", None) or ""
+        print(f"bro-log: {error} {detail}".rstrip(), file=sys.stderr)

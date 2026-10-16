@@ -3,17 +3,19 @@
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
 import textwrap
 import unittest
 
-HOOK = pathlib.Path(__file__).resolve().parents[2] / "plugins/pstack/hooks/bro-log.py"
+HOOKS = pathlib.Path(__file__).resolve().parents[2] / "plugins/pstack/hooks"
+HOOK = HOOKS / "bro-log.py"
+LAUNCHER = HOOKS / "bro-log.sh"
 
 FAKE_GH = textwrap.dedent(
     """\
-    #!/usr/bin/env python3
     import json, os, pathlib, sys
     state = pathlib.Path(os.environ["FAKE_GH_STATE"])
     calls = json.loads(state.read_text()) if state.exists() else {"calls": [], "issues": []}
@@ -72,9 +74,10 @@ class BroLogTest(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.root = pathlib.Path(self.directory.name)
         bin_directory = self.root / "bin"
+        self.bin_directory = bin_directory
         bin_directory.mkdir()
         gh = bin_directory / "gh"
-        gh.write_text(FAKE_GH)
+        gh.write_text(f"#!{sys.executable}\n{FAKE_GH}")
         gh.chmod(0o755)
         self.checkout = self.root / "checkout"
         self.checkout.mkdir()
@@ -105,7 +108,7 @@ class BroLogTest(unittest.TestCase):
     def tearDown(self):
         self.directory.cleanup()
 
-    def run_hook(self, prompt, entries, **environment):
+    def run_hook(self, prompt, entries, command=None, **environment):
         transcript = self.root / "transcript.jsonl"
         transcript.write_text("".join(json.dumps(entry) + "\n" for entry in entries))
         payload = {
@@ -116,7 +119,7 @@ class BroLogTest(unittest.TestCase):
             "prompt": prompt,
         }
         completed = subprocess.run(
-            [sys.executable, str(HOOK)],
+            command or [sys.executable, str(HOOK)],
             input=json.dumps(payload),
             capture_output=True,
             text=True,
@@ -243,6 +246,22 @@ class BroLogTest(unittest.TestCase):
         completed, calls = self.run_hook("/bro", [user("q"), assistant("a")])
         self.assertEqual(calls, [])
         self.assertIn("bro-log:", completed.stderr)
+        self.assertIn("No such remote", completed.stderr)
+
+    def test_the_launcher_falls_back_to_python_when_python3_fails(self):
+        python3 = self.bin_directory / "python3"
+        python3.write_text("#!/bin/sh\nexit 49\n")
+        python3.chmod(0o755)
+        (self.bin_directory / "python").symlink_to(sys.executable)
+        (self.bin_directory / "git").symlink_to(shutil.which("git"))
+        _, calls = self.run_hook(
+            "/bro",
+            [user("q"), assistant("a")],
+            command=[str(LAUNCHER)],
+            PATH=str(self.bin_directory),
+        )
+        [comment] = self.comments(calls)
+        self.assertIn("> q", comment["stdin"])
 
 
 if __name__ == "__main__":
