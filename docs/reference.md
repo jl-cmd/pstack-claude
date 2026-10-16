@@ -4,7 +4,7 @@ Start with the [README](../README.md) for installation and your first task.
 
 ## Slash commands
 
-The package includes 63 skill directories: 39 public skills and 24 `principle-*` references. Claude Code uses `/pstack:<name>`, and Pi uses `/skill:<name>`. In Codex, request a skill by name or install the [optional shortcuts](#codex) for the `/name` form below.
+The package includes 61 skill directories: 37 public skills and 24 `principle-*` references. Claude Code uses `/pstack:<name>`, and Pi uses `/skill:<name>`. In Codex, request a skill by name or install the [optional shortcuts](#codex) for the `/name` form below.
 
 Find each skill's instructions in the [skills tree](../plugins/pstack/skills/).
 
@@ -26,8 +26,6 @@ Find each skill's instructions in the [skills tree](../plugins/pstack/skills/).
 | `/swarm` | fan out N parallel workers across slices or races, then return one aggregated report |
 | `/technical-writing` | write docs, RFCs, readmes, PR descriptions, and commit messages to one layered standard |
 | `/bro` | restate the last message in plain human language, no jargon |
-| `/in-your-own-words` | play back your goal and the problem before the agent starts |
-| `/sharpen` | aim a task at what you are really after, the way a top expert would, without overspecifying it |
 | `/figure-it-out` | design a rigorous, auditable playbook for a task no bundled playbook fits |
 | `/show-me-your-work` | log decisions to a reviewable tsv decision trail |
 | `/blast-radius` | find what a change could break beyond the diff and prove safety by running code |
@@ -61,10 +59,10 @@ All runtimes share [one skills tree](../plugins/pstack/skills/). A skills-only i
 | Pi | Install the repository as a Pi package with `pi install`. The [Pi extension](../plugins/pstack/pi/index.ts) registers the subagent, question, and wake-up tools and `/loop`, and the [Pi mapping](../plugins/pstack/skills/poteto-mode/references/pi-tools.md) translates Claude tools and model names. The [equivalence table](pi-equivalence.md) records each Claude Code mechanism and how it was verified on Pi 1.1. |
 | GitHub Copilot | Install the plugin through the repository's marketplace; the CLI and the GitHub Copilot app share it. The [Copilot mapping](../plugins/pstack/skills/poteto-mode/references/copilot-tools.md) translates Claude tools, paths, and model roles, and maps app-only tools to CLI fallbacks. Install, routing, agent dispatch, and first-run setup are smoke-tested on the CLI; see [GitHub Copilot](#github-copilot). |
 | Prime Agent | Its documentation describes shared-directory discovery; it has not been tested in a live session. Choose tools and models through Prime's configuration. |
-| opencode | Verified on version 2.0.30: discovery and skill loading in the CLI and the desktop app, and delegation through its `subagent` tool in the CLI. Configure agents, commands, and permissions in `opencode.json`. Its picker also lists principle skills. |
+| opencode | Discovery and reading a linked skill were verified on version 1.18.25. Configure agents, commands, and permissions in `opencode.json`. Its picker also lists principle skills. |
 | Gemini CLI | Its documentation describes shared-directory discovery; it has not been tested in a live session. Use `/skills list` to check discovery and `/skills reload` after changes. |
 
-These checks cover skill discovery. Delegation remains unverified on Prime Agent and Gemini CLI, and multi-model workflows on all three. On those runtimes, agents must adapt Claude-specific tools, models, and configuration. Each mapping applies only to its runtime.
+These checks cover skill discovery. Delegation and multi-model workflows remain unverified on Prime Agent, opencode, and Gemini CLI. On those runtimes, agents must adapt Claude-specific tools, models, and configuration. Each mapping applies only to its runtime.
 
 ### Automatic routing
 
@@ -82,7 +80,17 @@ Skills-only installs and other runtimes do not include the hook or the Pi extens
 
 ### Shared skills installation
 
-Use this path for Prime Agent, opencode, Gemini CLI, or a skills-only Codex installation. Run the script under [Other harnesses](../README.md#other-harnesses) in the README, which clones the repository and links its skills into `~/.agents/skills/`.
+Use this path for Prime Agent, opencode, Gemini CLI, or a skills-only Codex installation. Clone the repository and link its skills into `~/.agents/skills/`:
+
+```shell
+git clone https://github.com/michael-denyer/pstack-claude
+cd pstack-claude
+mkdir -p ~/.agents/skills
+for s in plugins/pstack/skills/*/; do
+  target=~/.agents/skills/"$(basename "$s")"
+  test -e "$target" || test -L "$target" || ln -s "$(pwd)/$s" "$target"
+done
+```
 
 Keep all skill directories, including the principle references. Leave the clone at this path while the links are installed.
 
@@ -90,7 +98,7 @@ Keep all skill directories, including the principle references. Leave the clone 
 
 If a destination already exists, inspect it before replacing it. The installation skips existing files, directories, and links.
 
-To update, run `git pull` in the clone that the links point to, then run the install loop again. A pull updates skills that are already linked but does not link new skill directories. To uninstall a linked skill, remove its link at `~/.agents/skills/<name>`. This removes it from every runtime using that directory.
+To update, pull changes in the clone that the links point to. To uninstall a linked skill, remove its link at `~/.agents/skills/<name>`. This removes it from every runtime using that directory.
 
 ### Install with the skills CLI
 
@@ -166,8 +174,9 @@ Install dependencies for the workflows you use:
 
 | Dependency | When you need it |
 | --- | --- |
-| GitHub CLI, `gh` | PR monitoring, shipping, and the `orch` stack frontier. Authenticate with `gh auth login`. The playbooks use Origin's CLI, `origin`, instead when it can resolve the repository. |
+| GitHub CLI, `gh` | PR monitoring and shipping. Authenticate with `gh auth login`. |
 | Bun | The bundled `watch-pr` and `orch` scripts. Their bootstrap installs script dependencies on first run. |
+| Graphite CLI, `gt` | The Orchestrate playbook and `orch` stack frontier. Shipping and autopilot playbooks use `gh` or Origin's CLI when available. |
 | `plugin-dev` | Claude Code skill-authoring guidance used by `automate-me`, `reflect`, and `poteto-mode`. |
 
 Install the Claude Code skill-authoring companion with:
@@ -225,7 +234,7 @@ CI also checks shell scripts, workflows, Markdown, relative links, and the bundl
 
 ### Port scope and attribution
 
-The skill tree is synced against upstream `99743e9` (v0.15.25). The thermos skills and agents are synced against `118e73b` (thermos 1.0.0).
+The skill tree is synced against upstream `997ffc7` (v0.15.21). The thermos skills and agents are synced against `118e73b` (thermos 1.0.0).
 
 This repository ports Lauren Tan's pstack from Cursor to Claude Code and shares the skills with other runtimes. It includes six cursor-team-kit skills, the three thermos skills with their two review subagents, and an independently authored `babysit` skill. The port supplies Claude Code plugin registration and routing, Codex manifests and shortcuts, the Codex tool mapping, the Pi package, extension, and tool mapping, and the GitHub Copilot hooks and tool mapping.
 
