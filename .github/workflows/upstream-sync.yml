@@ -48,6 +48,8 @@ jobs:
           ref: ${{ env.TARGET_BRANCH }}
           fetch-depth: 1
           persist-credentials: false
+      - name: Test the tree builder
+        run: .github/upstream-sync/build-tree.test.sh
       - name: Build the tree and check this branch for drift
         id: build
         run: |

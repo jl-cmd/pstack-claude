@@ -203,6 +203,8 @@ jobs:
           shellcheck --version
           find . -path ./.git -prune -o -path '*/node_modules' -prune -o -name '*.sh' -print |
             sed 's#^\./##' | sort | tee /dev/stderr | xargs shellcheck --severity=warning
+      - name: Test the upstream sync tree builder
+        run: .github/upstream-sync/build-tree.test.sh
 
   actionlint:
     name: Workflow lint
