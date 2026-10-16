@@ -4,73 +4,60 @@ on:
   schedule:
     - cron: "23 7 * * *"
   workflow_dispatch:
+    inputs:
+      target_branch:
+        description: Branch to sync
+        default: main
 
 permissions: {}
 
 concurrency:
-  group: upstream-sync
+  group: upstream-sync-${{ inputs.target_branch || 'main' }}
   cancel-in-progress: false
 
 jobs:
   sync:
-    name: Merge michael-denyer/pstack-claude main into main
+    name: Sync the branch to michael-denyer/pstack-claude main
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write # push the sync commit to the target branch
     env:
       UPSTREAM_REPOSITORY: michael-denyer/pstack-claude
       UPSTREAM_BRANCH: main
+      FORK_OWNED_PATH: .github/workflows
+      TARGET_BRANCH: ${{ inputs.target_branch || 'main' }}
     steps:
-      - name: Require the sync token
-        env:
-          SYNC_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN }}
-        run: |
-          if [ -z "$SYNC_TOKEN" ]; then
-            echo "::error::Add the UPSTREAM_SYNC_TOKEN secret: a fine-grained token on ${GITHUB_REPOSITORY} with Contents, Workflows, and Pull requests write. The default token cannot push upstream commits that change .github/workflows."
-            exit 1
-          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
-          fetch-depth: 0
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
           persist-credentials: false
-      - name: Merge upstream main
-        id: merge
+      - name: Build upstream's tree with this fork's workflows
+        id: build
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch --quiet "https://github.com/${UPSTREAM_REPOSITORY}.git" "${UPSTREAM_BRANCH}"
-          upstream_sha=$(git rev-parse --short FETCH_HEAD)
-          echo "upstream_sha=$upstream_sha" >> "$GITHUB_OUTPUT"
-          if git merge-base --is-ancestor FETCH_HEAD HEAD; then
-            echo "main already contains ${UPSTREAM_REPOSITORY}@${upstream_sha}"
-            echo "outcome=current" >> "$GITHUB_OUTPUT"
+          git fetch --quiet --depth=1 "https://github.com/${UPSTREAM_REPOSITORY}.git" "${UPSTREAM_BRANCH}"
+          upstream_sha=$(git rev-parse FETCH_HEAD)
+          export GIT_INDEX_FILE="$RUNNER_TEMP/sync-index"
+          git read-tree FETCH_HEAD
+          git ls-files -z -- "$FORK_OWNED_PATH" | xargs -0 -r git update-index --force-remove --
+          git ls-tree -r HEAD -- "$FORK_OWNED_PATH" | git update-index --index-info
+          tree=$(git write-tree)
+          if [ "$tree" = "$(git rev-parse 'HEAD^{tree}')" ]; then
+            echo "${TARGET_BRANCH} already matches ${UPSTREAM_REPOSITORY}@${upstream_sha}"
             exit 0
           fi
-          message="Merge ${UPSTREAM_REPOSITORY}@${upstream_sha} into main"
-          if git merge --no-edit -m "$message" FETCH_HEAD; then
-            echo "outcome=clean" >> "$GITHUB_OUTPUT"
-          else
-            git add -A
-            git commit --quiet --no-verify -m "$message (conflicts)"
-            echo "outcome=conflict" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Push a clean merge to main, or open a pull request for the conflicts
-        if: steps.merge.outputs.outcome != 'current'
+          commit=$(git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit-tree "$tree" -p HEAD \
+            -m "Sync to ${UPSTREAM_REPOSITORY}@${upstream_sha:0:7}" \
+            -m "Upstream-Commit: ${upstream_sha}")
+          git diff --quiet FETCH_HEAD "$commit" -- . ":(exclude)${FORK_OWNED_PATH}"
+          git diff --quiet HEAD "$commit" -- "$FORK_OWNED_PATH"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+      - name: Push the sync commit
+        if: steps.build.outputs.commit != ''
         env:
-          GH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN }}
-          OUTCOME: ${{ steps.merge.outputs.outcome }}
-          UPSTREAM_SHA: ${{ steps.merge.outputs.upstream_sha }}
+          GH_TOKEN: ${{ github.token }}
+          COMMIT: ${{ steps.build.outputs.commit }}
         run: |
-          push_remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          if [ "$OUTCOME" = "clean" ]; then
-            git push "$push_remote" HEAD:main
-            exit 0
-          fi
-          branch="upstream-sync/${UPSTREAM_SHA}"
-          git push --force "$push_remote" "HEAD:refs/heads/${branch}"
-          if [ -z "$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --state open --json number --jq '.[].number')" ]; then
-            gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
-              --title "Merge ${UPSTREAM_REPOSITORY}@${UPSTREAM_SHA} into main" \
-              --body "The nightly merge of ${UPSTREAM_REPOSITORY} main hit conflicts. This branch commits the conflict markers. Resolve them here, then merge."
-          fi
+          git push --quiet "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${COMMIT}:refs/heads/${TARGET_BRANCH}"
+          git log --oneline -1 "$COMMIT"
