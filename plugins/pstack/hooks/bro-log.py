@@ -8,7 +8,8 @@ the assistant text after it, finds the open issue titled "/bro log" in
 the session's GitHub repository (or PSTACK_BRO_LOG_REPO), creates it when none is open, and adds
 one comment. It skips a public repository unless PSTACK_BRO_LOG_REPO names
 it. It skips a transcript line that is not a JSON object, and reads and
-writes UTF-8 whatever the locale. A failed git or gh call, a missing remote, or an unreadable transcript
+writes UTF-8 whatever the locale. An @name in the text is posted so it
+renders without notifying anyone. A failed git or gh call, a missing remote, or an unreadable transcript
 goes to stderr with gh's own error text, and the hook exits 0. The hook runs
 async, so it never holds up a prompt. bro-log.sh starts it with python3, or
 with python where python3 does not run, as on many Windows machines.
@@ -29,6 +30,7 @@ GITHUB_REMOTE = re.compile(
     r"(?:^|@|//)github\.com[:/](?P<repository>[^/\s]+/[^/\s]+?)(?:\.git)?/?$"
 )
 COMMENT_LIMIT = 60000
+MENTION = re.compile(r"(?<![\w`])@(?=[A-Za-z0-9])")
 
 
 def bro_arguments(prompt):
@@ -44,7 +46,7 @@ def text_blocks(entry):
     if isinstance(content, str):
         return [content]
     return [
-        block.get("text", "")
+        block.get("text") or ""
         for block in content or []
         if isinstance(block, dict) and block.get("type") == "text"
     ]
@@ -80,9 +82,10 @@ def last_exchange(transcript_path):
     collecting = False
     for entry in entries:
         if is_prompt_entry(entry):
-            collecting = not is_bro_entry(prompt_text(entry))
+            text = prompt_text(entry)
+            collecting = not is_bro_entry(text)
             if collecting:
-                prompt = prompt_text(entry)
+                prompt = text
                 texts = []
         elif collecting and entry.get("type") == "assistant":
             texts.extend(text_blocks(entry))
@@ -95,6 +98,7 @@ def run(arguments, cwd=None, stdin=None):
         arguments,
         cwd=cwd,
         input=stdin,
+        stdin=subprocess.DEVNULL if stdin is None else None,
         capture_output=True,
         encoding="utf-8",
         errors="replace",
@@ -149,6 +153,10 @@ def log_issue_number(repository):
     )
 
 
+def without_mentions(text):
+    return MENTION.sub("@&#8203;", text)
+
+
 def quoted(text):
     return "\n".join("> " + line for line in text.splitlines())
 
@@ -168,11 +176,11 @@ def comment_body(payload, arguments, prompt, reply, cwd):
         "",
         "Prompt before it:",
         "",
-        quoted(prompt) or "> _(no prompt before this /bro)_",
+        quoted(without_mentions(prompt)) or "> _(no prompt before this /bro)_",
         "",
         "Reply restated:",
         "",
-        reply or "_(no assistant text before this /bro)_",
+        without_mentions(reply) or "_(no assistant text before this /bro)_",
     ]
     body = "\n".join(lines)
     if len(body) > COMMENT_LIMIT:

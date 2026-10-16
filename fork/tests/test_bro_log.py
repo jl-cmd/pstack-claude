@@ -276,6 +276,28 @@ class BroLogTest(unittest.TestCase):
         self.assertIn("> the question", body)
         self.assertIn("the answer", body)
 
+    def test_mentions_post_without_notifying(self):
+        entries = [
+            user("ask @octocat"),
+            assistant("ping @team/core, mail me@example.com"),
+        ]
+        _, calls = self.run_hook("/bro", entries)
+        body = self.comments(calls)[0]["stdin"]
+        self.assertIn("> ask @&#8203;octocat", body)
+        self.assertIn("ping @&#8203;team/core, mail me@example.com", body)
+
+    def test_a_null_text_block_is_skipped(self):
+        entries = [
+            user("the question"),
+            {
+                "type": "assistant",
+                "message": {"content": [{"type": "text", "text": None}]},
+            },
+            assistant("the answer"),
+        ]
+        _, calls = self.run_hook("/bro", entries)
+        self.assertIn("the answer", self.comments(calls)[0]["stdin"])
+
     def test_a_remote_that_only_contains_github_is_not_github(self):
         subprocess.run(
             [

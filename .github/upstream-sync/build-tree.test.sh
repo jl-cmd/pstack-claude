@@ -58,6 +58,7 @@ expect "$tree" .github/workflows/ci.yml "fork ci" "owned .github"
 expect "$tree" .github/fork-only.yml fork "owned .github"
 expect "$tree" .github/upstream-only.yml "<missing>" "owned .github"
 expect "$tree" .github/upstream-commit "$upstream_commit" "owned .github"
+expect "$tree" plugins/pstack/hooks/hooks.json '{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"start"}]}]}}' "owned .github"
 if [ "$(git ls-tree "$tree" .github/run.sh | cut -c1-6)" != 100755 ]; then
   echo "FAIL owned .github: .github/run.sh lost its executable mode"
   failures=$((failures + 1))

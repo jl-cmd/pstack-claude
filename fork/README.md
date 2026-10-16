@@ -12,6 +12,20 @@ This fork tracks michael-denyer/pstack-claude `main`. The nightly upstream sync 
 
 The `/bro` log goes to the GitHub repository of the session's `origin` remote. It skips a public repository. Set `PSTACK_BRO_LOG_REPO` to `owner/name` to log to another repository, public or private. The hook runs async and never blocks a prompt.
 
+## Regenerate the merged hooks file
+
+After a commit that changes `fork/hooks.json`, rebuild `plugins/pstack/hooks/hooks.json` from that commit and commit the result:
+
+```sh
+FORK_OWNED_PATHS=$(sed -n 's/^  FORK_OWNED_PATHS: //p' .github/workflows/upstream-sync.yml)
+export FORK_OWNED_PATHS
+git fetch --depth=1 https://github.com/michael-denyer/pstack-claude.git "$(cat .github/upstream-commit)"
+tree=$(.github/upstream-sync/build-tree.sh "$(cat .github/upstream-commit)" HEAD)
+git restore --source "$tree" -- plugins/pstack/hooks/hooks.json
+```
+
+The `Fork extensions` CI job fails while the committed file differs from this build.
+
 ## Tests
 
 ```sh

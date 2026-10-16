@@ -224,7 +224,7 @@ jobs:
           git fetch --quiet --depth=1 https://github.com/michael-denyer/pstack-claude.git "$synced_commit"
           rebuilt_tree=$(.github/upstream-sync/build-tree.sh "$synced_commit" HEAD)
           if [ "$rebuilt_tree" != "$(git rev-parse 'HEAD^{tree}')" ]; then
-            echo "::error::This tree differs from upstream ${synced_commit} plus FORK_OWNED_PATHS (${FORK_OWNED_PATHS}). The nightly sync would fail. Run build-tree.sh and commit its output, or move the edit into an owned path:"
+            echo "::error::This tree differs from upstream ${synced_commit} plus FORK_OWNED_PATHS (${FORK_OWNED_PATHS}). The nightly sync would fail. Move the edit into an owned path, or regenerate the merged hooks file as fork/README.md shows:"
             git diff --stat "$rebuilt_tree" HEAD
             exit 1
           fi
