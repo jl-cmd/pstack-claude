@@ -12,7 +12,7 @@ writes UTF-8 whatever the locale. An @name in the text is posted so it
 renders without notifying anyone. A failed git or gh call, a missing remote, or an unreadable transcript
 goes to stderr with gh's own error text, and the hook exits 0. The hook runs
 async, so it never holds up a prompt. bro-log.sh starts it with python3, or
-with python where python3 does not run, as on many Windows machines.
+with python where python3 does not run Python 3, as on many Windows machines.
 """
 
 import datetime
@@ -27,7 +27,7 @@ REPO_OVERRIDE_VARIABLE = "PSTACK_BRO_LOG_REPO"
 BRO_PROMPT = re.compile(r"^/(?:pstack:)?bro(?:\s+(?P<arguments>.*))?$", re.DOTALL)
 BRO_COMMAND_TAG = re.compile(r"<command-name>/(?:pstack:)?bro</command-name>")
 GITHUB_REMOTE = re.compile(
-    r"(?:^|@|//)github\.com[:/](?P<repository>[^/\s]+/[^/\s]+?)(?:\.git)?/?$"
+    r"(?:^|@|//)github\.com(?::\d+)?[:/](?P<repository>[^/\s]+/[^/\s]+?)(?:\.git)?/?$"
 )
 COMMENT_LIMIT = 60000
 MENTION = re.compile(r"(?<![\w`])@(?=[A-Za-z0-9])")

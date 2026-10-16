@@ -246,7 +246,9 @@ class BroLogTest(unittest.TestCase):
         subprocess.run(
             ["git", "-C", str(self.checkout), "remote", "remove", "origin"], check=True
         )
-        completed, calls = self.run_hook("/bro", [user("q"), assistant("a")])
+        completed, calls = self.run_hook(
+            "/bro", [user("q"), assistant("a")], LC_ALL="C", LANGUAGE=""
+        )
         self.assertEqual(calls, [])
         self.assertIn("bro-log:", completed.stderr)
         self.assertIn("No such remote", completed.stderr)
@@ -314,6 +316,49 @@ class BroLogTest(unittest.TestCase):
         completed, calls = self.run_hook("/bro", [user("q"), assistant("a")])
         self.assertEqual(calls, [])
         self.assertIn("is not a GitHub repository", completed.stderr)
+
+    def test_an_ssh_remote_with_a_port_is_github(self):
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.checkout),
+                "remote",
+                "set-url",
+                "origin",
+                "ssh://git@github.com:22/owner/name.git",
+            ],
+            check=True,
+        )
+        _, calls = self.run_hook("/bro", [user("q"), assistant("a")])
+        [comment] = self.comments(calls)
+        self.assertEqual(comment["arguments"][3], "repos/owner/name/issues/40/comments")
+
+    def test_the_launcher_skips_a_python_that_is_not_python_3(self):
+        python3 = self.bin_directory / "python3"
+        python3.write_text(
+            textwrap.dedent(
+                f"""\
+                #!/bin/sh
+                if [ "$1" = "-c" ]; then
+                  exec {sys.executable} -c 'import sys; sys.version_info = (2, 7, 18); exec(sys.argv[1])' "$2"
+                fi
+                echo "SyntaxError: invalid syntax" >&2
+                exit 1
+                """
+            )
+        )
+        python3.chmod(0o755)
+        (self.bin_directory / "python").symlink_to(sys.executable)
+        (self.bin_directory / "git").symlink_to(shutil.which("git"))
+        _, calls = self.run_hook(
+            "/bro",
+            [user("q"), assistant("a")],
+            command=[str(LAUNCHER)],
+            PATH=str(self.bin_directory),
+        )
+        [comment] = self.comments(calls)
+        self.assertIn("> q", comment["stdin"])
 
     def test_the_launcher_falls_back_to_python_when_python3_fails(self):
         python3 = self.bin_directory / "python3"
