@@ -206,6 +206,29 @@ jobs:
       - name: Test the upstream sync tree builder
         run: .github/upstream-sync/build-tree.test.sh
 
+  fork-extensions:
+    name: Fork extensions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test the fork's hooks
+        run: python3 -m unittest discover -v -s fork/tests
+      - name: Check this tree rebuilds from its upstream commit and the fork's paths
+        run: |
+          set -eo pipefail
+          FORK_OWNED_PATHS=$(sed -n 's/^  FORK_OWNED_PATHS: //p' .github/workflows/upstream-sync.yml)
+          export FORK_OWNED_PATHS
+          synced_commit=$(cat .github/upstream-commit)
+          git fetch --quiet --depth=1 https://github.com/michael-denyer/pstack-claude.git "$synced_commit"
+          rebuilt_tree=$(.github/upstream-sync/build-tree.sh "$synced_commit" HEAD)
+          if [ "$rebuilt_tree" != "$(git rev-parse 'HEAD^{tree}')" ]; then
+            echo "::error::This tree differs from upstream ${synced_commit} plus FORK_OWNED_PATHS (${FORK_OWNED_PATHS}). The nightly sync would fail. Move the edit into an owned path, or regenerate the merged hooks file as fork/README.md shows:"
+            git diff --stat "$rebuilt_tree" HEAD
+            exit 1
+          fi
+
   actionlint:
     name: Workflow lint
     runs-on: ubuntu-latest

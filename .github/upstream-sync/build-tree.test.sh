@@ -29,6 +29,7 @@ write README.md upstream
 write .github/workflows/ci.yml "upstream ci"
 write .github/upstream-only.yml upstream
 write "docs/with space.md" upstream
+write plugins/pstack/hooks/hooks.json '{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"start"}]}]}}'
 upstream_commit=$(commit_files upstream)
 
 reset_worktree
@@ -37,6 +38,7 @@ write .github/workflows/ci.yml "fork ci"
 write .github/fork-only.yml fork
 write .github/run.sh fork
 chmod +x .github/run.sh
+write fork/hooks.json '{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"fork start"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"bro"}]}]}}'
 fork_commit=$(commit_files fork)
 
 failures=0
@@ -56,6 +58,7 @@ expect "$tree" .github/workflows/ci.yml "fork ci" "owned .github"
 expect "$tree" .github/fork-only.yml fork "owned .github"
 expect "$tree" .github/upstream-only.yml "<missing>" "owned .github"
 expect "$tree" .github/upstream-commit "$upstream_commit" "owned .github"
+expect "$tree" plugins/pstack/hooks/hooks.json '{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"start"}]}]}}' "owned .github"
 if [ "$(git ls-tree "$tree" .github/run.sh | cut -c1-6)" != 100755 ]; then
   echo "FAIL owned .github: .github/run.sh lost its executable mode"
   failures=$((failures + 1))
@@ -76,6 +79,16 @@ expect "$tree" README.md fork "two owned files"
 expect "$tree" .github/fork-only.yml fork "two owned files"
 expect "$tree" .github/workflows/ci.yml "upstream ci" "two owned files"
 expect "$tree" .github/upstream-only.yml upstream "two owned files"
+
+tree=$(FORK_OWNED_PATHS=fork "$build_tree" "$upstream_commit" "$fork_commit")
+merged_commands=$(git cat-file blob "$tree:plugins/pstack/hooks/hooks.json" | jq -c '[.hooks | to_entries[] | [.key, (.value[].hooks[].command)]]')
+expect_commands='[["SessionStart","start","fork start"],["UserPromptSubmit","bro"]]'
+if [ "$merged_commands" != "$expect_commands" ]; then
+  echo "FAIL fork hooks: merged hooks are $merged_commands, expected $expect_commands"
+  failures=$((failures + 1))
+fi
+tree=$(FORK_OWNED_PATHS=.github "$build_tree" "$upstream_commit" "$upstream_commit")
+expect "$tree" plugins/pstack/hooks/hooks.json '{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"start"}]}]}}' "no fork hooks"
 
 if [ "$(git rev-parse HEAD)" != "$fork_commit" ] || [ -n "$(git diff --cached --name-only)" ]; then
   echo "FAIL the build changed HEAD or the repository index"
