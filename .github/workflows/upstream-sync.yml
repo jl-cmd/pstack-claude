@@ -100,9 +100,9 @@ jobs:
           ref: ${{ needs.build.outputs.fork_commit }}
           fetch-depth: 1
           persist-credentials: false
-      - name: Rebuild the tested tree and push it
+      - name: Rebuild the tested tree and commit it
+        id: commit
         env:
-          GH_TOKEN: ${{ github.token }}
           UPSTREAM_COMMIT: ${{ needs.build.outputs.upstream_commit }}
           TESTED_TREE: ${{ needs.build.outputs.tree }}
         run: |
@@ -116,10 +116,16 @@ jobs:
             commit-tree "$tree" -p HEAD \
             -m "Sync to ${UPSTREAM_REPOSITORY}@${UPSTREAM_COMMIT:0:7}" \
             -m "Upstream-Commit: ${UPSTREAM_COMMIT}")
+          git log --oneline -1 "$commit"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+      - name: Push the commit and start CI and Security on it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT: ${{ steps.commit.outputs.commit }}
+        run: |
           GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" \
             GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" \
-            git push --quiet "https://github.com/${GITHUB_REPOSITORY}.git" "${commit}:refs/heads/${TARGET_BRANCH}"
-          git log --oneline -1 "$commit"
+            git push --quiet "https://github.com/${GITHUB_REPOSITORY}.git" "${COMMIT}:refs/heads/${TARGET_BRANCH}"
           gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$TARGET_BRANCH"
           gh workflow run security.yml --repo "$GITHUB_REPOSITORY" --ref "$TARGET_BRANCH"
 
@@ -137,10 +143,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SYNC_FAILED: ${{ needs.build.result == 'failure' || needs.push.result == 'failure' }}
+          TITLE: Upstream sync of ${{ inputs.target_branch || 'main' }} failed
         run: |
-          title="Upstream sync of ${TARGET_BRANCH} failed"
           if ! open_issues=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 500 --json number,title \
-            --jq "map(select(.title == \"${title}\")) | sort_by(.number) | .[].number"); then
+            --jq 'map(select(.title == env.TITLE)) | sort_by(.number) | .[].number'); then
             echo "::warning::cannot read issues in ${GITHUB_REPOSITORY}; turn on Issues in the repository settings"
             [ "$SYNC_FAILED" = false ]
             exit
@@ -150,7 +156,7 @@ jobs:
             if [ -n "$open_issues" ]; then
               gh issue comment "${open_issues%%$'\n'*}" --repo "$GITHUB_REPOSITORY" --body "$body"
             else
-              gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+              gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body "$body"
             fi
           else
             for number in $open_issues; do
