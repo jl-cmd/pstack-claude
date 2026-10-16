@@ -124,25 +124,36 @@ jobs:
           gh workflow run security.yml --repo "$GITHUB_REPOSITORY" --ref "$TARGET_BRANCH"
 
   report:
-    name: Report a failed sync
+    name: Report the sync result in an issue
     needs: [build, push]
-    if: failure()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
-      issues: write # open or comment on the sync failure issue
+      issues: write # open, comment on, or close the sync failure issue
     steps:
-      - name: Open or comment on the sync failure issue
+      - name: Open the sync failure issue, or close it after a good run
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SYNC_FAILED: ${{ needs.build.result == 'failure' || needs.push.result == 'failure' }}
         run: |
-          title="Upstream sync failed"
-          body="The upstream sync of ${TARGET_BRANCH} failed: ${RUN_URL}"
-          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"${title}\" in:title" --json number,title \
-            --jq "map(select(.title == \"${title}\")) | sort_by(.number) | .[0].number // empty")
-          if [ -n "$number" ]; then
-            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "$body"
+          title="Upstream sync of ${TARGET_BRANCH} failed"
+          if ! open_issues=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 500 --json number,title \
+            --jq "map(select(.title == \"${title}\")) | sort_by(.number) | .[].number"); then
+            echo "::warning::cannot read issues in ${GITHUB_REPOSITORY}; turn on Issues in the repository settings"
+            [ "$SYNC_FAILED" = false ]
+            exit
+          fi
+          if [ "$SYNC_FAILED" = true ]; then
+            body="The upstream sync of ${TARGET_BRANCH} failed: ${RUN_URL}"
+            if [ -n "$open_issues" ]; then
+              gh issue comment "${open_issues%%$'\n'*}" --repo "$GITHUB_REPOSITORY" --body "$body"
+            else
+              gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+            fi
           else
-            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+            for number in $open_issues; do
+              gh issue close "$number" --repo "$GITHUB_REPOSITORY" --comment "The upstream sync of ${TARGET_BRANCH} passed: ${RUN_URL}"
+            done
           fi
