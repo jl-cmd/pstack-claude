@@ -51,12 +51,23 @@ describe("parseModels", () => {
     const arena = role(resolved, "arena runners");
     expect(arena.tier).toBe("panel");
     expect(arena.models).toEqual(raw.tiers.panel);
-    expect(role(resolved, "bug-fix").models).toEqual([raw.tiers.strongest]);
+    expect(role(resolved, "feature, refactoring").models).toEqual([raw.tiers.worker]);
+    expect(role(resolved, "strongest judgment").models).toEqual([raw.tiers.strongest]);
   });
 
   test("a missing top-level key throws naming it", () => {
     expect(parse((p) => delete p.efforts)).toThrow('models.json: "efforts" must be a list');
     expect(parse((p) => delete p.codex)).toThrow('models.json: "codex" must be an object');
+  });
+
+  test.each(["default", "strongest", "worker", "panel"])("a missing %s tier throws naming it, since a stamped region renders from it", (tier) => {
+    expect(
+      parse((p) => {
+        delete p.tiers[tier];
+        delete p.codex[tier];
+        p.roles = p.roles.filter((r) => r.models !== tier);
+      }),
+    ).toThrow(`models.json: tiers has no "${tier}"`);
   });
 
   test("a role naming an undefined tier throws naming the role and the tier", () => {
