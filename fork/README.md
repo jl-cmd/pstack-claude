@@ -12,6 +12,21 @@ This fork tracks michael-denyer/pstack-claude `main`. The nightly upstream sync 
 
 The `/bro` log goes to the GitHub repository of the session's `origin` remote. It skips a public repository. Set `PSTACK_BRO_LOG_REPO` to `owner/name` to log to another repository, public or private. The hook runs async and never blocks a prompt.
 
+## Patches
+
+Each `fork/patches/*.patch` file is a `git diff` against upstream's tree. Each sync applies them in name order after it merges the hooks, so a fork edit inside an upstream file survives the sync while the rest of that file keeps tracking upstream. A patch that no longer applies fails the sync, and the fork's branch stays as it was.
+
+| Patch | What it does |
+| ----- | ------------ |
+| `poteto-mode-haiku-slim.patch` | Adds the poteto-mode Haiku subagents section and `references/haiku-slim.md`. A Haiku role runs headless on the slim profile with `--autocompact 100k`. |
+
+To change a patched file, edit it in place, then rewrite its patch from the synced upstream commit:
+
+```sh
+git fetch --depth=1 https://github.com/michael-denyer/pstack-claude.git "$(cat .github/upstream-commit)"
+git diff --no-color FETCH_HEAD -- plugins/pstack/skills/poteto-mode/ > fork/patches/poteto-mode-haiku-slim.patch
+```
+
 ## Regenerate the merged hooks file
 
 After a commit that changes `fork/hooks.json`, rebuild `plugins/pstack/hooks/hooks.json` from that commit and commit the result:

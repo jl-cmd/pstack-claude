@@ -6,6 +6,7 @@ fork_commit=$(git rev-parse --verify "$2^{commit}")
 marker=.github/upstream-commit
 fork_hooks=fork/hooks.json
 plugin_hooks=plugins/pstack/hooks/hooks.json
+fork_patches=fork/patches
 read -ra owned_paths <<< "${FORK_OWNED_PATHS:?}"
 if [ "${#owned_paths[@]}" -eq 0 ]; then
   echo "FORK_OWNED_PATHS names no path" >&2
@@ -30,4 +31,9 @@ if git ls-files --error-unmatch -- "$fork_hooks" > /dev/null 2>&1; then
   )
   git update-index --add --cacheinfo "100644,$merged_hooks_blob,$plugin_hooks"
 fi
+git ls-files -z -- "$fork_patches" | sort -z | while IFS= read -r -d '' patch; do
+  case "$patch" in
+    *.patch) git cat-file blob ":$patch" | git apply --cached - ;;
+  esac
+done
 git write-tree

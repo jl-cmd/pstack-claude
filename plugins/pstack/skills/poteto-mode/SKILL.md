@@ -107,6 +107,10 @@ You own every subagent's work. Review the diff and write your own summary, don't
 
 **A review gate stays closed when no independent reviewer can run.** An agent limit, subagent dispatch turned off, or a skills-only install can leave a required review with no reviewer. Keep the results of reviewers already dispatched. As the one exception to fresh subagents, reuse a finished reviewer only through the runtime's own follow-up action, only if it did not write the change, and only with the full current brief and head revision. A reused reviewer counts once. Never count your own review, passing tests, or CI as the independent verdict. Record `BLOCKED: independent review` in the todolist, keep merge-ready and shipping closed, and report which reviewers ran and which are missing. Work that doesn't depend on the review continues. A fan-out skill run only to explore may fall back to one labelled sequential pass.
 
+## Haiku subagents
+
+On Claude Code, run every Haiku role or panel seat headless on the slim profile with `--autocompact 100k`, never as an `Agent` call. Read [`references/haiku-slim.md`](references/haiku-slim.md) for the command and the measured cost.
+
 ## Writing the reply
 
 Write the reply clean as you draft it. A cleanup pass after drafting does not remove these patterns.

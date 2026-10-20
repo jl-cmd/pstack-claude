@@ -90,6 +90,30 @@ fi
 tree=$(FORK_OWNED_PATHS=.github "$build_tree" "$upstream_commit" "$upstream_commit")
 expect "$tree" plugins/pstack/hooks/hooks.json '{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"start"}]}]}}' "no fork hooks"
 
+write fork/patches/readme.patch 'diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -1 +1 @@
+-upstream
++upstream patched'
+patched_fork_commit=$(commit_files "fork patch")
+tree=$(FORK_OWNED_PATHS=fork "$build_tree" "$upstream_commit" "$patched_fork_commit")
+expect "$tree" README.md "upstream patched" "fork patch"
+expect "$tree" fork/patches/readme.patch "$(git cat-file blob "$patched_fork_commit:fork/patches/readme.patch")" "fork patch"
+
+write fork/patches/readme.patch 'diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -1 +1 @@
+-gone upstream
++upstream patched'
+stale_fork_commit=$(commit_files "stale fork patch")
+if FORK_OWNED_PATHS=fork "$build_tree" "$upstream_commit" "$stale_fork_commit" > /dev/null 2>&1; then
+  echo "FAIL a fork patch that no longer applies built a tree"
+  failures=$((failures + 1))
+fi
+git checkout -q "$fork_commit"
+
 if [ "$(git rev-parse HEAD)" != "$fork_commit" ] || [ -n "$(git diff --cached --name-only)" ]; then
   echo "FAIL the build changed HEAD or the repository index"
   failures=$((failures + 1))
