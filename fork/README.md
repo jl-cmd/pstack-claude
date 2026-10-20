@@ -25,7 +25,7 @@ To change a patched file, edit it in place, then rewrite its patch from the sync
 ```sh
 git fetch --depth=1 https://github.com/michael-denyer/pstack-claude.git "$(cat .github/upstream-commit)"
 git add --intent-to-add -- plugins/pstack/skills/poteto-mode/
-git diff --no-color FETCH_HEAD -- plugins/pstack/skills/poteto-mode/ > fork/patches/poteto-mode-haiku-slim.patch
+git diff --no-color --src-prefix=a/ --dst-prefix=b/ FETCH_HEAD -- plugins/pstack/skills/poteto-mode/ > fork/patches/poteto-mode-haiku-slim.patch
 ```
 
 ## Regenerate the merged hooks file
