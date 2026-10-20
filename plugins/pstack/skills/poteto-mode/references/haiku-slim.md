@@ -22,7 +22,7 @@ The slim run has no MCP servers, no user plugins, and no CLAUDE.md. Name every f
 
 ## Measured cost
 
-A code review eval graded by an Opus judge. Each run is 2 cases with 3 reps each, and 7 known bugs per run set the 21 in the table. Two runs of one setting differed by up to 6 bugs.
+A code review eval graded by an Opus judge. Each run reviews 2 cases 3 times each. The 2 cases hold 7 known bugs, so one run can find at most 21. Two runs of one setting differed by up to 6 bugs.
 
 | Reviewer | Bugs found per run of 21 | Cost per review |
 |-|-|-|
