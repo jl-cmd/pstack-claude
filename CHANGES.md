@@ -2,6 +2,34 @@
 
 This file is the release changelog, with one `## <version> - <title>` entry per release, newest first. The Cursor-to-Claude rewrite rules live in [`tools/substitutions.json`](tools/substitutions.json), and the [sync boundary](CONTRIBUTING.md#the-sync-boundary) in `CONTRIBUTING.md` defines how a change to upstream's skill content is declared.
 
+## 0.9.99 - Skills and plugins paths follow CLAUDE_CONFIG_DIR, and the transcript directory encoding is correct
+
+The skills that named Claude Code's user skills and plugins directories as `~/.claude/skills/` and `~/.claude/plugins/` now name `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/` and `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/`. Claude Code keeps both under its configuration directory. Without this change, on a machine with `CLAUDE_CONFIG_DIR` set, `poteto-agent` searched an empty `~/.claude/plugins/` for the poteto-mode skill, `automate-me` missed personal mode skills, and the `reflect` reviewers ignored the skill reads they were meant to count. The `~/.cursor/plugins/` rule in `tools/substitutions.json` writes the new form, and a new `~/.cursor/skills/` rule runs ahead of the project `.cursor/skills/` rule, so a sync derives the same text and the change adds no fork.
+
+`recall`, `automate-me`, and the Session pickup playbook described `<encoded-cwd>` as the workspace path with `/` changed to `-`, and `recall` said the leading slash was dropped. Claude Code changes every character other than a letter or digit to `-`, the leading slash included, so `/private/tmp/coat_opus48_440` is stored as `-private-tmp-coat-opus48-440`. The three now say so.
+
+`tests/claude-config-dir.test.mjs` now also fails on a `skills` or `plugins` path under `~/.claude` without the variable, and on the old encoding wording. The `~/.claude/orchestrate/` store stays where it is: pstack creates it, not Claude Code. Both gaps were listed in the Scope section of [#298](https://github.com/michael-denyer/pstack-claude/pull/298).
+
+**Verified.** Both tests fail on 14 lines at 0.9.98 and pass here. The sync dry-run at the pinned SHA prints the same ownership map as 0.9.98: 47 forked, 87 unchanged. The encoding comes from the `projects/` directory names on a machine running Claude Code 2.1.296. Claude Code's environment variable reference says plugins live under `CLAUDE_CONFIG_DIR`. For user skills, the 2.1.296 binary joins `skills` onto the same configuration directory. A separate run with the variable set did not happen, because a new configuration directory starts logged out.
+
+## 0.9.98 - Transcript paths follow CLAUDE_CONFIG_DIR
+
+Claude Code writes transcripts under `$CLAUDE_CONFIG_DIR/projects/` when that variable is set, and writes nothing to `~/.claude/projects/`. The skills named the fixed path, so on such a machine `recall` and `automate-me` read a directory that is missing or belongs to another configuration. `reflect` passed that directory to `find-transcript.mjs`, which exited 1 with `ENOENT`, so the skill fell back to a digest every time. The Eval and Session pickup playbooks and `show-me-your-work` had the same gap. `worktree-audit.mjs` has read the variable since 0.9.68.
+
+Every skill and mapping that named `~/.claude/projects/` now names `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`, the directory `worktree-audit.mjs` scans. The default reads `$HOME`, as in the SessionStart hook, because bash leaves `~` unexpanded inside double quotes. The Worktree and simulator cleanup playbook also names Claude Code's shell snapshots as `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/shell-snapshots/`. The five rules in `tools/substitutions.json` that write these paths carry the new form, so a sync derives the same text and the change adds no fork. `tests/claude-config-dir.test.mjs` fails when a file outside `CHANGES.md` and `tests/` spells these paths any other way, such as `~/.claude/projects`, a `~` default, or `$CLAUDE_CONFIG_DIR` without a default.
+
+@Poggen found and fixed this in [#298](https://github.com/michael-denyer/pstack-claude/pull/298).
+
+**Verified.** The new test fails on 24 lines in 12 files at 0.9.97 and passes here. With `CLAUDE_CONFIG_DIR` set, the 0.9.97 `reflect` command line exits 1 with `ENOENT`, and the new one prints the session's transcript. With the variable unset, the new line resolves to `~/.claude/projects/`.
+
+## 0.9.97 - Hooks load from a plugin root with a backslash
+
+The Copilot and Muse SessionStart hooks pass their hooks directory to awk through `PSTACK_HOOKS` in the environment instead of `-v`. awk expands backslash escapes in a `-v` value, so a plugin root holding `\t` or `\\`, as a Windows-style path does, pointed awk at a directory that does not exist. The hooks then exited 0 with the mandate missing: Copilot sent `{"additionalContext":"\n\n\n\n"}`, and Muse sent only the sheet's role lines. Closes [#296](https://github.com/michael-denyer/pstack-claude/issues/296).
+
+## 0.9.96 - Muse port
+
+pstack now ships a Muse build. The native plugin manifest under `.muse-plugin/` lists every shared skill and a `SessionStart` hook that injects the poteto-mode mandate in Muse wording once the user approves the plugin's hooks. Muse surfaces each user-invocable skill as a slash command itself, so the build ships no command templates. The plugin's four agent files register as Muse agent definitions, and role effort suffixes pass as a Workflow child's `effort`, the Muse form of the dispatch effort field 0.9.95 standardized on. A new `muse-tools.md` mapping resolves Claude tool names, subagents, transcripts, and Muse model IDs, and `models.json` gains a `muse` block with a model per tier. `setup-pstack` writes the Muse sheet under the Muse config directory, which the hook reads directly. The generator owns the manifest's skill list and the Muse preambles, so the build stays in step with the tree. The Muse hook keeps each usable sheet line through the same `sheet_problems()` check the Copilot hooks use. @LuckyProtein built the port in [#295](https://github.com/michael-denyer/pstack-claude/pull/295).
+
 ## 0.9.95 - Effort is a field on the dispatch
 
 An `@level` on a role now reaches the child as the dispatch's own effort field on every runtime: `effort` on the Claude Code `Agent` call, `reasoning_effort` on Codex's `spawn_agent` and Copilot's `task`, and `effort` on Pi's `agent` tool. The ten generated agents, `effort-<level>` and `poteto-agent-<level>`, are gone, and so is the `agents` list in the Claude Code plugin manifest. They existed only because the `Agent` call had no effort parameter, and Claude Code 2.1.292 added one. Without the list Claude Code registers the default `agents/` directory, so pstack's agent types are exactly the four under `agents/`: `comment-sicko`, `poteto-agent`, and the two thermo-nuclear subagents. The generator now fails if the manifest gains an `agents` list again. Claude Code 2.1.292 or later is required for `@level`.

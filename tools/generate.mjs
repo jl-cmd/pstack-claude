@@ -691,7 +691,8 @@ export function effortSection(levels, defaultEffort) {
     "is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` " +
     "at every level, and a model name is passed as `model`. " +
     "Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. " +
-    "That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`."
+    "That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. " +
+    "On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort."
   );
 }
 
@@ -747,7 +748,7 @@ export function overrideSheetBlock(models) {
     "A model may carry a reasoning effort, as in `opus @xhigh` (levels: " + models.efforts.join(", ") + "); " +
     "the role's subagent then runs at that level, each entry of a panel list on its own. " +
     "`default effort` sets the level for a value without one; `session` keeps the parent session's effort. " +
-    "`session hook: off` stops the Claude Code or Codex SessionStart hook, or the pstack Pi extension, from injecting the poteto-mode mandate; " +
+    "`session hook: off` stops the Claude Code, Codex, or Muse SessionStart hook, or the pstack Pi extension, from injecting the poteto-mode mandate; " +
     "any other value, or no line, leaves it on.\n\n" +
     rows +
     `\n\ndefault effort: ${models.defaultEffort}\nsession hook: on`
@@ -907,6 +908,11 @@ export function plan(root, models) {
       const preamble = (leads.get(`${SKILLS}/${skill.name}/SKILL.md`) ?? []).includes(runtime.preamble);
       put(`${runtime.prompts}/${skill.name}.md`, promptStub(skill, runtime, { preamble }));
     }
+  }
+  for (const runtime of RUNTIMES.filter((r) => r.stampManifest)) {
+    stamp(runtime.manifest, (text) =>
+      runtime.stampManifest(text, { skills: agentSkills(join(root, SKILLS)).map(({ name }) => name) }),
+    );
   }
   for (const dir of OWNED_DIRS) {
     const outer = OWNED_DIRS.find((other) => dir.startsWith(`${other}/`));
