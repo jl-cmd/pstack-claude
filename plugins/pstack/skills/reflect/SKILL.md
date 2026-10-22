@@ -39,7 +39,7 @@ Each reviewer and the synthesizer name a role line in `pstack-models.md` and a d
 | Tooling | `reflect tooling` | `references/tooling-reviewer.md` |
 | Divergent | `reflect judgment, divergent, synthesizer` | `references/divergent-reviewer.md` |
 
-Pass each template verbatim, substituting the transcript path or digest where marked. Add nothing beside a transcript path and the template's closing `Outcome:` and `On a blocker:` lines, not even a focus note for a long transcript. Reviewers return findings in the `Agent` response body.
+Pass each template verbatim, substituting the transcript path or digest where marked. Add nothing beside a transcript path and the template's `Outcome:` and `On a blocker:` lines, not even a focus note for a long transcript. Reviewers return findings in the `Agent` response body.
 
 ## 3. Synthesize
 
