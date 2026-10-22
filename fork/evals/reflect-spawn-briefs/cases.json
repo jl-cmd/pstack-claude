@@ -1,0 +1,10 @@
+[
+  { "id": "judgment-as-shipped", "template": "judgment-reviewer.md", "mutation": "none", "expect": "allow" },
+  { "id": "tooling-as-shipped", "template": "tooling-reviewer.md", "mutation": "none", "expect": "allow" },
+  { "id": "divergent-as-shipped", "template": "divergent-reviewer.md", "mutation": "none", "expect": "allow" },
+  { "id": "synthesizer-as-shipped", "template": "synthesizer.md", "mutation": "none", "expect": "allow" },
+  { "id": "judgment-no-outcome", "template": "judgment-reviewer.md", "mutation": "drop-outcome", "expect": "deny" },
+  { "id": "synthesizer-no-outcome", "template": "synthesizer.md", "mutation": "drop-outcome", "expect": "deny" },
+  { "id": "tooling-no-blocker", "template": "tooling-reviewer.md", "mutation": "drop-blocker", "expect": "deny" },
+  { "id": "divergent-no-blocker", "template": "divergent-reviewer.md", "mutation": "drop-blocker", "expect": "deny" }
+]

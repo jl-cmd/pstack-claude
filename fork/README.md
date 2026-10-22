@@ -39,6 +39,12 @@ node fork/evals/maintain-verification-target-lookup/run.mjs --self-check
 node fork/evals/maintain-verification-target-lookup/run.mjs --out <results dir> --reps 3
 ```
 
+`fork/evals/reflect-spawn-briefs/` feeds each reflect reviewer and synthesizer template to a spawn hook as an `Agent` prompt and grades the hook's allow or deny. It runs origin/main's templates as `baseline` and the working tree's as `v1`. Twin cases drop the `Outcome:` or `On a blocker:` line and expect a deny. It makes no model call. `--hook` names the hook file; the default is `~/.claude/hooks/routing/spawn_oversight_hook.py`.
+
+```sh
+node fork/evals/reflect-spawn-briefs/run.mjs
+```
+
 ## Regenerate the merged hooks file
 
 After a commit that changes `fork/hooks.json`, rebuild `plugins/pstack/hooks/hooks.json` from that commit and commit the result:
