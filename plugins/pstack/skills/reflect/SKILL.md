@@ -55,7 +55,7 @@ Present the synthesizer's full Accepted / Rejected / Backlog output and wait for
 
 File each Backlog item to your team's devex or backlog tracker without waiting. Only the Accepted list waits for approval.
 
-Close-all mode: when the user asks to close every finding in this run, that ask approves every Accepted row and replaces filing the Backlog. Draft a fix for each Accepted and Backlog row: an Accepted fix follows its Routing below, and a Backlog fix builds the mechanism its item suggests. Send each finding with its draft fix to two independent verifier agents, which confirm the fix or correct it. A corrected fix goes back to the other verifier and lands once that verifier confirms it. Land the verified fixes and leave no open-issue list. A row both verifiers reject goes back to the user with their reason. A row one verifier confirms and the other rejects goes back to the user with both reasons.
+Close-all mode: when the user asks to close every finding in this run, that ask approves every Accepted row and replaces filing the Backlog. Draft a fix for each Accepted and Backlog row: an Accepted fix follows its Routing below, and a Backlog fix builds the mechanism its item suggests. Send each finding with its draft fix to two independent verifier agents, which confirm the fix or correct it. A corrected fix goes back to the other verifier and lands once that verifier confirms it. Land the verified fixes and leave no open-issue list. Any other row, where a verifier rejects the draft or a correction, goes back to the user with each verifier's reason.
 
 Follow each approved row's Routing exactly:
 
