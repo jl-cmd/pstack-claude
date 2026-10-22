@@ -180,10 +180,12 @@ function buildPrompt(stepFive, fixture) {
 }
 
 const LIVE_KILLERS = new Set();
+const LIVE_WORK_DIRS = new Set();
 
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, () => {
     for (const killTree of LIVE_KILLERS) killTree();
+    for (const workDir of LIVE_WORK_DIRS) rmSync(workDir, { recursive: true, force: true });
     process.exit(130);
   });
 }
@@ -243,10 +245,12 @@ async function runOne(job, options, fixture) {
   const { testCase, rep, stepFive, promptSha } = job;
   const caseDir = join(options.out, testCase.id);
   const workDir = mkdtempSync(join(tmpdir(), "reflect-close-all-"));
+  LIVE_WORK_DIRS.add(workDir);
   const prompt = buildPrompt(stepFive, fixture);
   const started = Date.now();
   const { code, stdout, stderr } = await runClaude(prompt, options, workDir);
   rmSync(workDir, { recursive: true, force: true });
+  LIVE_WORK_DIRS.delete(workDir);
   const latencyS = (Date.now() - started) / 1000;
   try {
     const { payload, plan } = parseResult(stdout);
