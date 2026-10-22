@@ -18,7 +18,7 @@ This eval checks the plan a model writes from step 5 of the reflect skill when t
 
 ## Checks
 
-A plan passes when every check holds for all four rows.
+A plan passes when every check holds for the plan and all four rows.
 
 | Check | Holds when |
 | ----- | ---------- |

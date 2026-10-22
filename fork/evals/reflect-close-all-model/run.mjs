@@ -169,6 +169,15 @@ function buildPrompt(stepFive, fixture) {
   ].join("\n");
 }
 
+const LIVE_KILLERS = new Set();
+
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, () => {
+    for (const killTree of LIVE_KILLERS) killTree();
+    process.exit(130);
+  });
+}
+
 function runClaude(prompt, options, workDir) {
   const args = [
     "-p",
@@ -196,14 +205,17 @@ function runClaude(prompt, options, workDir) {
       } else spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
     };
     const timer = setTimeout(killTree, options.timeoutS * 1000);
+    LIVE_KILLERS.add(killTree);
     child.on("error", (error) => {
       clearTimeout(timer);
+      LIVE_KILLERS.delete(killTree);
       resolvePromise({ code: null, stdout, stderr: `${stderr}${String(error)}` });
     });
     child.stdout.on("data", (chunk) => (stdout += chunk));
     child.stderr.on("data", (chunk) => (stderr += chunk));
     child.on("close", (code) => {
       clearTimeout(timer);
+      LIVE_KILLERS.delete(killTree);
       resolvePromise({ code, stdout, stderr });
     });
     child.stdin.on("error", (error) => (stderr += String(error)));
