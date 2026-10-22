@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "..", "..", "..");
 const SKILL_PATH = "plugins/pstack/skills/maintain-verification-skill/SKILL.md";
-const SESSION_TOOL = /list_sessions|search_session_transcripts/;
+const SESSION_TOOL = /list_sessions|search_session_transcripts|get_session|export_transcript/;
 const STOP_TOOL = /AskUserQuestion|ask_user|^stop$/i;
 const REPO_TOOL = /bash|powershell|git|gh/i;
 
