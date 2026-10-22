@@ -64,6 +64,7 @@ function parseArgs(argv) {
     else throw new Error(`unknown argument: ${flag}`);
   }
   if (!(options.reps >= 1 && options.reps <= MAX_REPS)) throw new Error(`--reps must be 1 to ${MAX_REPS}`);
+  if (!(options.concurrency >= 1)) throw new Error("--concurrency must be 1 or more");
   return options;
 }
 
@@ -205,6 +206,7 @@ function runClaude(prompt, options, workDir) {
       clearTimeout(timer);
       resolvePromise({ code, stdout, stderr });
     });
+    child.stdin.on("error", (error) => (stderr += String(error)));
     child.stdin.end(prompt);
   });
 }
