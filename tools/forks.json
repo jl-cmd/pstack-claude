@@ -30,6 +30,12 @@
       "since": "0.9.29",
       "upstream": "not-proposed"
     },
+    "plugins/pstack/skills/maintain-verification-skill/SKILL.md": {
+      "kind": "policy",
+      "why": "Finds the target page from a session the args name, looks for it on origin/main, open PR heads, then sibling worktrees, and reports a duplicate or untracked driver before any feature-map edit.",
+      "since": "0.9.99",
+      "upstream": "not-proposed"
+    },
     "plugins/pstack/skills/poteto-help/SKILL.md": {
       "kind": "port-feature",
       "why": "Routes installation, model-sheet loading, and persistent routing preferences to the current runtime's setup sources, gives installed playbooks precedence over upstream guides, and keeps the port's public skill loading, hidden principles, verification-skill naming, local-worker advice, driver and built-in equivalents, excluded make-bot-ui row, and orchestrate wording as prose changes in this fork.",
@@ -236,8 +242,32 @@
     },
     "plugins/pstack/skills/reflect/SKILL.md": {
       "kind": "port-feature",
-      "why": "Finds the session transcript with the port's find-transcript.mjs under Claude Code's projects directory, keeps the parent's conclusions out of the reviewer prompts (a fallback digest records events without a verdict, and nothing goes beside a transcript path), and drops Cursor's readonly agent mode and inline model column.",
+      "why": "Finds the session transcript with the port's find-transcript.mjs under Claude Code's projects directory, keeps the parent's conclusions out of the reviewer prompts (a fallback digest records events without a verdict, and nothing goes beside a transcript path), drops Cursor's readonly agent mode and inline model column, lets the reviewer and synthesizer prompts carry their Outcome and On a blocker lines, has step 2 append any further brief contract line a local spawn gate requires, and adds a close-all mode that fixes and independently verifies every row in the same run.",
       "since": "0.1.0",
+      "upstream": "not-proposed"
+    },
+    "plugins/pstack/skills/reflect/references/divergent-reviewer.md": {
+      "kind": "policy",
+      "why": "Ends the prompt with Outcome and On a blocker lines, so a spawn hook that requires both accepts the brief on the first call.",
+      "since": "0.9.99",
+      "upstream": "not-proposed"
+    },
+    "plugins/pstack/skills/reflect/references/judgment-reviewer.md": {
+      "kind": "policy",
+      "why": "Ends the prompt with Outcome and On a blocker lines, so a spawn hook that requires both accepts the brief on the first call.",
+      "since": "0.9.99",
+      "upstream": "not-proposed"
+    },
+    "plugins/pstack/skills/reflect/references/synthesizer.md": {
+      "kind": "policy",
+      "why": "Ends the prompt with Outcome and On a blocker lines, so a spawn hook that requires both accepts the brief on the first call.",
+      "since": "0.9.99",
+      "upstream": "not-proposed"
+    },
+    "plugins/pstack/skills/reflect/references/tooling-reviewer.md": {
+      "kind": "policy",
+      "why": "Ends the prompt with Outcome and On a blocker lines, so a spawn hook that requires both accepts the brief on the first call.",
+      "since": "0.9.99",
       "upstream": "not-proposed"
     },
     "plugins/pstack/skills/setup-pstack/SKILL.md": {

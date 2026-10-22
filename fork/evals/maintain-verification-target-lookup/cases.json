@@ -1,0 +1,44 @@
+[
+  {
+    "id": "session-named-discount",
+    "tags": ["session-named"],
+    "args": "the checkout flow from yesterday's session that added the discount-code driver",
+    "facts": "The repository has two verification skills: .claude/skills/verify/ and .claude/skills/verify-legacy/.",
+    "expect": "session-first"
+  },
+  {
+    "id": "session-named-run-id",
+    "tags": ["session-named"],
+    "args": "run 4f2a, the export-to-CSV flow",
+    "facts": "The repository has two verification skills: .claude/skills/verify/ and .claude/skills/verify-legacy/.",
+    "expect": "session-first"
+  },
+  {
+    "id": "nothing-named-two-skills",
+    "tags": ["nothing-named"],
+    "args": "",
+    "facts": "The repository has two verification skills: .claude/skills/verify/ and .claude/skills/verify-legacy/.",
+    "expect": "no-session"
+  },
+  {
+    "id": "nothing-named-one-skill",
+    "tags": ["nothing-named"],
+    "args": "audit the verify skill",
+    "facts": "The repository has one verification skill: .claude/skills/verify/.",
+    "expect": "no-session"
+  },
+  {
+    "id": "page-on-pr-refunds",
+    "tags": ["page-on-pr"],
+    "args": "the refunds page, features/refunds.md",
+    "facts": "The repository has one verification skill: .claude/skills/verify/. The file .claude/skills/verify/features/refunds.md is not in the working tree.",
+    "expect": "main-then-pr"
+  },
+  {
+    "id": "page-on-pr-gift-cards",
+    "tags": ["page-on-pr"],
+    "args": "the gift-cards feature page",
+    "facts": "The repository has one verification skill: .claude/skills/verify/. Its feature map has no gift-cards page in the working tree.",
+    "expect": "main-then-pr"
+  }
+]

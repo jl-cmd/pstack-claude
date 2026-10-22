@@ -19,7 +19,8 @@ Each `fork/patches/*.patch` file is a `git diff` against upstream's tree. Each s
 | Patch | What it does |
 | ----- | ------------ |
 | `poteto-mode-haiku-slim.patch` | Adds the poteto-mode Haiku subagents section and `references/haiku-slim.md`. A Haiku role runs headless on the slim profile with `--autocompact 100k`. |
-| `reflect-brief-contract.patch` | Has reflect step 2 append the brief contract lines a local spawn gate requires, such as `Outcome`, after each reviewer template. |
+| `maintain-verification-target-lookup.patch` | Makes maintain-verification-skill find its target page from a session the args name, look for that page on origin/main, open PR heads, then sibling worktrees, and report a duplicate or untracked driver before any feature-map edit. Declares the fork in `tools/forks.json`. |
+| `reflect-close-all.patch` | Ends each reflect reviewer and synthesizer prompt with Outcome and On a blocker lines, has step 2 append any further brief contract line a local spawn gate requires, and adds a close-all mode that fixes and independently verifies every row in the same run. Declares the forks in `tools/forks.json`. |
 
 To change a patched file, edit it in place, then rewrite its patch from the synced upstream commit:
 
@@ -27,6 +28,28 @@ To change a patched file, edit it in place, then rewrite its patch from the sync
 git fetch --depth=1 https://github.com/michael-denyer/pstack-claude.git "$(cat .github/upstream-commit)"
 git add --intent-to-add -- plugins/pstack/skills/poteto-mode/
 git diff --no-color --src-prefix=a/ --dst-prefix=b/ FETCH_HEAD -- plugins/pstack/skills/poteto-mode/ > fork/patches/poteto-mode-haiku-slim.patch
+```
+
+## Evals
+
+`fork/evals/maintain-verification-target-lookup/` checks the plan a headless `claude -p` writes from the maintain-verification-skill text. It runs origin/main's SKILL.md as `baseline` and the working tree's as `v1`, and grades each plan's tool order. Each model call runs through `python ~/.claude/scripts/account_broker.py`, so a model run needs that broker script. `--self-check` grades fixed plans and makes no model call.
+
+```sh
+node fork/evals/maintain-verification-target-lookup/run.mjs --self-check
+node fork/evals/maintain-verification-target-lookup/run.mjs --out <results dir> --reps 3
+```
+
+`fork/evals/reflect-spawn-briefs/` feeds each reflect reviewer and synthesizer template to a spawn hook as an `Agent` prompt and grades the hook's allow or deny. It runs origin/main's templates as `baseline` and the working tree's as `v1`. Twin cases drop the `Outcome:` or `On a blocker:` line and expect a deny. It makes no model call. `--hook` names the hook file; the default is `~/.claude/hooks/routing/spawn_oversight_hook.py`.
+
+```sh
+node fork/evals/reflect-spawn-briefs/run.mjs
+```
+
+`fork/evals/reflect-close-all-model/` gives a headless `claude -p --model sonnet` the reflect step 5 text, four Accepted and Backlog rows, and a request to close every finding, then grades the plan it writes. The `close-all` case reads the working tree's SKILL.md and expects a pass. The `pre-patch-twin` case reads SKILL.md at `6bd8db9^` and expects a fail. Scores are in [its README](evals/reflect-close-all-model/README.md).
+
+```sh
+node fork/evals/reflect-close-all-model/run.mjs --self-check
+node fork/evals/reflect-close-all-model/run.mjs --out <results dir> --reps 3
 ```
 
 ## Regenerate the merged hooks file

@@ -39,7 +39,7 @@ Each reviewer and the synthesizer name a role line in `pstack-models.md` and a d
 | Tooling | `reflect tooling` | `references/tooling-reviewer.md` |
 | Divergent | `reflect judgment, divergent, synthesizer` | `references/divergent-reviewer.md` |
 
-Pass each template verbatim, substituting the transcript path or digest where marked. Add nothing beside a transcript path, not even a focus note for a long transcript. When a local spawn gate requires brief contract lines, such as `Outcome`, `On a blocker`, and `Scope settled`, append those lines after each template before the first spawn. The gate refuses a reviewer brief without them. Reviewers return findings in the `Agent` response body.
+Pass each template verbatim, substituting the transcript path or digest where marked. Add nothing beside a transcript path and the template's `Outcome:` and `On a blocker:` lines, not even a focus note for a long transcript. When a local spawn gate requires further brief contract lines, such as `Scope settled`, append them after each template before the first spawn. Reviewers return findings in the `Agent` response body.
 
 ## 3. Synthesize
 
@@ -54,6 +54,8 @@ Move any Accepted item that a lint rule, script, metadata flag, or runtime check
 Present the synthesizer's full Accepted / Rejected / Backlog output and wait for explicit approval before applying any Accepted edit. The user picks the subset and may redirect routings. Skill changes affect every future agent in the org. Do not auto-apply.
 
 File each Backlog item to your team's devex or backlog tracker without waiting. Only the Accepted list waits for approval.
+
+Close-all mode: when the user asks to close every finding in this run, that ask approves every Accepted row and replaces filing the Backlog. Draft a fix for each Accepted and Backlog row: an Accepted fix follows its Routing below, and a Backlog fix builds the mechanism its item suggests. Send each finding with its draft fix to two independent verifier agents, which confirm the fix, correct it, or reject it. A corrected fix goes back to the other verifier and lands once that verifier confirms it. Land the verified fixes and leave no open-issue list. Any other row, where a verifier rejects the draft or a correction, goes back to the user with each verifier's reason.
 
 Follow each approved row's Routing exactly:
 

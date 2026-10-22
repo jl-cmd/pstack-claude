@@ -45,4 +45,7 @@ Skip trivial things (typos, retries) and anything already obvious from the skill
 
 Return as a numbered list. No exposition.
 
+Outcome: the parent has a numbered list of tooling-lens learnings, each with a principle, evidence, and routing.
+On a blocker: try other routes that reach the outcome; hand the user a step only when it needs their hands.
+
 <DIGEST IF FILE PATH UNAVAILABLE>

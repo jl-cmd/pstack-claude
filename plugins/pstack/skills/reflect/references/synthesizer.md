@@ -54,3 +54,6 @@ For each rejected finding:
 ## Backlog
 
 For each item, describe the pattern, what was hit, and the suggested mechanism. The parent files each to whatever devex / backlog tracker the team uses.
+
+Outcome: the parent has the Accepted, Rejected, and Backlog lists for this reflect run.
+On a blocker: try other routes that reach the outcome; hand the user a step only when it needs their hands.
