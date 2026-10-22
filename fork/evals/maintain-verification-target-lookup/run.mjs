@@ -78,7 +78,7 @@ export function gradePlan(expect, steps) {
   if (expect === "main-then-pr") {
     const isRepoTool = (step) => REPO_TOOL.test(step.tool);
     const mainIndex = firstIndex(steps, (step) => isRepoTool(step) && /origin[/ ]main/i.test(step.input));
-    const pullIndex = firstIndex(steps, (step) => isRepoTool(step) && /\bpr\b|pull|refs\/pull/i.test(step.input));
+    const pullIndex = firstIndex(steps, (step) => isRepoTool(step) && /\bgh\s+pr\b|refs\/pull|\/pulls\b|\bpull\/[\d*]/i.test(step.input));
     return pullIndex !== Infinity && mainIndex < pullIndex && pullIndex < askIndex;
   }
   throw new Error(`unknown expectation: ${expect}`);
@@ -101,6 +101,15 @@ function selfCheck() {
       { tool: "gh", input: "gh pr list --state open" },
       { tool: "git", input: "git show origin/main:.claude/skills/verify/features/refunds.md" },
     ],
+    prGitPull: [
+      { tool: "git", input: "git show origin/main:.claude/skills/verify/features/refunds.md" },
+      { tool: "git", input: "git pull" },
+      { tool: "ask_user", input: "not found" },
+    ],
+    prFetchRefs: [
+      { tool: "git", input: "git ls-tree origin/main .claude/skills/verify/features/" },
+      { tool: "git", input: "git fetch origin +refs/pull/*/head:refs/remotes/origin/pr/*" },
+    ],
   };
   const expectations = [
     ["session-first", plans.sessionOracle, true],
@@ -112,6 +121,8 @@ function selfCheck() {
     ["main-then-pr", plans.prOracle, true],
     ["main-then-pr", plans.prNull, false],
     ["main-then-pr", plans.prWrongOrder, false],
+    ["main-then-pr", plans.prGitPull, false],
+    ["main-then-pr", plans.prFetchRefs, true],
     ["main-then-pr", [], false],
   ];
   let failures = 0;
@@ -176,6 +187,10 @@ function runClaude(prompt, options, workDir) {
       else spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
     };
     const timer = setTimeout(killTree, options.timeoutS * 1000);
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      resolvePromise({ code: null, stdout, stderr: `${stderr}${String(error)}` });
+    });
     child.stdout.on("data", (chunk) => (stdout += chunk));
     child.stderr.on("data", (chunk) => (stderr += chunk));
     child.on("close", (code) => {
