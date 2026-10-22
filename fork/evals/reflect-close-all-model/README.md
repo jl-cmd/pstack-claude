@@ -36,7 +36,7 @@ node fork/evals/reflect-close-all-model/run.mjs --self-check
 node fork/evals/reflect-close-all-model/run.mjs --out <results dir> --reps 3
 ```
 
-`--reps` takes 1 to 3. `--cases` takes case ids and stops on an id the fixture lacks. A rerun into the same `--out` skips samples it already holds for the same prompt, system prompt, and model. The summary grades each saved plan again with the current grader. The command exits 0 when every sample is graded, `close-all` passes on most, and `pre-patch-twin` fails on most.
+`--reps` takes 1 to 3. `--cases` takes case ids and stops on an id the fixture lacks. A rerun into the same `--out` skips samples it already holds for the same prompt, output schema, system prompt, and model. The summary grades each saved plan again with the current grader. The command exits 0 when every sample is graded, `close-all` passes on most, and `pre-patch-twin` fails on most.
 
 ## Scores
 
