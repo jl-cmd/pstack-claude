@@ -35,4 +35,7 @@ Skip trivial things and anything already obvious from the skill the parent follo
 
 Return as a numbered list. No exposition.
 
+Outcome: the parent has a numbered list of divergent-lens learnings, each with a principle, evidence, and routing.
+On a blocker: try other routes that reach the outcome; hand the user a step only when it needs their hands.
+
 <DIGEST IF FILE PATH UNAVAILABLE>

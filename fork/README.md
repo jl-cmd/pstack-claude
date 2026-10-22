@@ -20,6 +20,7 @@ Each `fork/patches/*.patch` file is a `git diff` against upstream's tree. Each s
 | ----- | ------------ |
 | `poteto-mode-haiku-slim.patch` | Adds the poteto-mode Haiku subagents section and `references/haiku-slim.md`. A Haiku role runs headless on the slim profile with `--autocompact 100k`. |
 | `maintain-verification-target-lookup.patch` | Makes maintain-verification-skill find its target page from a session the args name, look for that page on origin/main, open PR heads, then sibling worktrees, and report a duplicate or untracked driver before any feature-map edit. Declares the fork in `tools/forks.json`. |
+| `reflect-close-all.patch` | Ends each reflect reviewer and synthesizer prompt with Outcome and On a blocker lines, and adds a close-all mode that fixes and independently verifies every row in the same run. Declares the forks in `tools/forks.json`. |
 
 To change a patched file, edit it in place, then rewrite its patch from the synced upstream commit:
 
