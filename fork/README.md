@@ -29,6 +29,15 @@ git add --intent-to-add -- plugins/pstack/skills/poteto-mode/
 git diff --no-color --src-prefix=a/ --dst-prefix=b/ FETCH_HEAD -- plugins/pstack/skills/poteto-mode/ > fork/patches/poteto-mode-haiku-slim.patch
 ```
 
+## Evals
+
+`fork/evals/maintain-verification-target-lookup/` checks the plan a headless `claude -p` writes from the maintain-verification-skill text. It runs main's SKILL.md as `baseline` and the working tree's as `v1`, and grades each plan's tool order. `--self-check` grades fixed plans and makes no model call.
+
+```sh
+node fork/evals/maintain-verification-target-lookup/run.mjs --self-check
+node fork/evals/maintain-verification-target-lookup/run.mjs --out <results dir> --reps 3
+```
+
 ## Regenerate the merged hooks file
 
 After a commit that changes `fork/hooks.json`, rebuild `plugins/pstack/hooks/hooks.json` from that commit and commit the result:
