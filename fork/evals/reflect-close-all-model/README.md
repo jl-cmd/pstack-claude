@@ -22,6 +22,7 @@ A plan passes when every check holds for all four rows.
 
 | Check | Holds when |
 | ----- | ---------- |
+| `one-row-each` | The plan has exactly one entry for each row. |
 | `drafted` | Each row, Backlog included, has action `draft-fix` and a non-empty draft. |
 | `two-verifiers` | Each row's draft goes to two or more verifier agents. |
 | `verifiers-correct` | A verifier may change each draft. |
@@ -35,16 +36,16 @@ node fork/evals/reflect-close-all-model/run.mjs --self-check
 node fork/evals/reflect-close-all-model/run.mjs --out <results dir> --reps 3
 ```
 
-`--reps` takes 1 to 3. A rerun into the same `--out` skips samples it already holds for the same prompt, system prompt, and model. The command exits 0 when `close-all` passes on most samples and `pre-patch-twin` fails on most.
+`--reps` takes 1 to 3. `--cases` takes case ids and stops on an id the fixture lacks. A rerun into the same `--out` skips samples it already holds for the same prompt, system prompt, and model. The command exits 0 when `close-all` passes on most samples and `pre-patch-twin` fails on most.
 
 ## Scores
 
-Run on 2026-10-22 with `claude-sonnet-5-5`, 3 samples per case, about $0.15 reported for all six calls.
+Run on 2026-10-22 with `claude-sonnet-5-5` and the `run.mjs` in the commit that adds this line, 3 samples per case, $0.11 reported for all six calls.
 
 | Case | Pass | Per check |
 | ---- | ---- | --------- |
-| `close-all` | 3/3 | drafted 3/3, two-verifiers 3/3, verifiers-correct 3/3, lands 3/3, none-open 3/3 |
-| `pre-patch-twin` | 0/3 | drafted 0/3, two-verifiers 0/3, verifiers-correct 0/3, lands 0/3, none-open 0/3 |
+| `close-all` | 3/3 | one-row-each 3/3, drafted 3/3, two-verifiers 3/3, verifiers-correct 3/3, lands 3/3, none-open 3/3 |
+| `pre-patch-twin` | 0/3 | one-row-each 3/3, drafted 0/3, two-verifiers 0/3, verifiers-correct 0/3, lands 0/3, none-open 0/3 |
 
 `close-all` sample 0: "Send each finding with its draft fix to two independent verifier agents, in parallel. Each verifier confirms the fix or corrects it."
 

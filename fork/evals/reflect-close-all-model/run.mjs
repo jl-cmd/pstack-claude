@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,6 +79,7 @@ export function gradePlan(findingIds, plan) {
   const rows = findingIds.map((id) => rowById.get(id));
   const everyRow = (predicate) => rows.every((row) => row !== undefined && predicate(row));
   const checks = {
+    "one-row-each": findingIds.every((id) => plan.rows.filter((row) => row.finding_id.trim() === id).length === 1),
     drafted: everyRow((row) => row.action === "draft-fix" && row.draft_fix.trim().length > 0),
     "two-verifiers": everyRow((row) => row.verifier_count >= 2),
     "verifiers-correct": everyRow((row) => row.verifiers_may_correct === true),
@@ -112,6 +113,7 @@ function selfCheck(findingIds) {
     ["open item left", { ...oracle, open_items_after_run: ["B1"] }, false],
     ["row missing", { ...oracle, rows: oracle.rows.slice(1) }, false],
     ["applied unverified", withRow("A1", { action: "apply-unreviewed" }), false],
+    ["duplicate row", { ...oracle, rows: [...oracle.rows, { ...closeAllRow("B1"), action: "file-to-tracker" }].reverse() }, false],
   ];
   let failures = 0;
   for (const [name, plan, wanted] of expectations) {
@@ -219,6 +221,7 @@ async function runOne(job, options, fixture) {
   const prompt = buildPrompt(stepFive, fixture);
   const started = Date.now();
   const { code, stdout, stderr } = await runClaude(prompt, options, workDir);
+  rmSync(workDir, { recursive: true, force: true });
   const latencyS = (Date.now() - started) / 1000;
   try {
     const { payload, plan } = parseResult(stdout);
@@ -278,6 +281,8 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.selfCheck) process.exit(selfCheck(fixture.findings.map((row) => row.id)) ? 0 : 1);
   const cases = options.cases ? fixture.cases.filter((testCase) => options.cases.includes(testCase.id)) : fixture.cases;
+  const unknownCaseIds = (options.cases ?? []).filter((id) => !fixture.cases.some((testCase) => testCase.id === id));
+  if (unknownCaseIds.length > 0) throw new Error(`unknown --cases ids: ${unknownCaseIds.join(",")}`);
   const jobs = [];
   const shaByCase = new Map();
   for (const testCase of cases) {
