@@ -13,6 +13,8 @@ const STEP_FIVE = /^## 5\. Apply\n[\s\S]*?(?=^## 6\.)/m;
 const ROW_ACTIONS = ["draft-fix", "apply-unreviewed", "wait-for-approval", "file-to-tracker", "drop"];
 const MAX_REPS = 3;
 
+const SYSTEM_PROMPT = "You plan agent work and report the plan in the requested structure.";
+
 const PLAN_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -170,7 +172,7 @@ function runClaude(prompt, options, workDir) {
     "--tools", "",
     "--setting-sources", "",
     "--strict-mcp-config",
-    "--system-prompt", "You plan agent work and report the plan in the requested structure.",
+    "--system-prompt", SYSTEM_PROMPT,
     "--json-schema", JSON.stringify(PLAN_SCHEMA),
     "--output-format", "json",
     "--no-session-persistence",
@@ -282,7 +284,7 @@ async function main() {
     const caseDir = join(options.out, testCase.id);
     mkdirSync(join(caseDir, "traces"), { recursive: true });
     const stepFive = stepFiveText(testCase.skill_source);
-    const promptSha = createHash("sha256").update(buildPrompt(stepFive, fixture)).update(JSON.stringify(PLAN_SCHEMA)).digest("hex").slice(0, 12);
+    const promptSha = createHash("sha256").update(buildPrompt(stepFive, fixture)).update(JSON.stringify(PLAN_SCHEMA)).update(SYSTEM_PROMPT).update(options.model).digest("hex").slice(0, 12);
     shaByCase.set(testCase.id, promptSha);
     const done = new Set(readRows(caseDir, promptSha).map((row) => row.rep));
     for (let rep = 0; rep < options.reps; rep += 1) {

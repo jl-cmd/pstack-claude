@@ -35,7 +35,7 @@ node fork/evals/reflect-close-all-model/run.mjs --self-check
 node fork/evals/reflect-close-all-model/run.mjs --out <results dir> --reps 3
 ```
 
-`--reps` takes 1 to 3. A rerun into the same `--out` skips samples it already holds for the same prompt. The command exits 0 when `close-all` passes on most samples and `pre-patch-twin` fails on most.
+`--reps` takes 1 to 3. A rerun into the same `--out` skips samples it already holds for the same prompt, system prompt, and model. The command exits 0 when `close-all` passes on most samples and `pre-patch-twin` fails on most.
 
 ## Scores
 
