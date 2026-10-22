@@ -40,16 +40,16 @@ node fork/evals/reflect-close-all-model/run.mjs --out <results dir> --reps 3
 
 ## Scores
 
-Run on 2026-10-22 with `claude-sonnet-5-5` and `run.mjs` at `5dda041`, after step 5 sent every split verdict back to the user, 3 samples per case, $0.13 reported for all six calls.
+Run on 2026-10-22 with `claude-sonnet-5-5`, `run.mjs` at `5dda041`, and step 5 from `SKILL.md` blob `c8282dd`, where a verifier may reject a fix and any rejected row goes back to the user. 3 samples per case, $0.14 reported for all six calls.
 
 | Case | Pass | Per check |
 | ---- | ---- | --------- |
 | `close-all` | 3/3 | one-row-each 3/3, drafted 3/3, two-verifiers 3/3, verifiers-correct 3/3, lands 3/3, none-open 3/3 |
 | `pre-patch-twin` | 0/3 | one-row-each 3/3, drafted 0/3, two-verifiers 0/3, verifiers-correct 0/3, lands 0/3, none-open 0/3 |
 
-`close-all` sample 0: "Send each finding with its draft fix to two independent verifier agents. Each verifier either confirms the fix or corrects it."
+`close-all` sample 0: "Send each finding and its draft fix to two independent verifier agents, run in parallel. Each verifier confirms, corrects, or rejects."
 
-`pre-patch-twin` sample 0: "File B1 to the devex/backlog tracker now, with tags tooling and ci."
+`pre-patch-twin` sample 0: "File B1 to the devex/backlog tracker with tags tooling and ci."
 
 In every twin sample A1 is applied with no verifier and B1 is filed to the tracker.
 
