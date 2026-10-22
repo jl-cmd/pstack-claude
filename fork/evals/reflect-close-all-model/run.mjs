@@ -41,6 +41,8 @@ const PLAN_SCHEMA = {
   },
 };
 
+const VALUE_FLAGS = new Set(["--out", "--reps", "--model", "--concurrency", "--timeout-s", "--cases"]);
+
 function parseArgs(argv) {
   const options = {
     out: join(tmpdir(), "reflect-close-all-model"),
@@ -54,7 +56,8 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
     const value = argv[index + 1];
-    if (flag !== "--self-check" && (value === undefined || value.startsWith("--"))) {
+    if (!VALUE_FLAGS.has(flag) && flag !== "--self-check") throw new Error(`unknown argument: ${flag}`);
+    if (VALUE_FLAGS.has(flag) && (value === undefined || value.startsWith("--"))) {
       throw new Error(`${flag} needs a value`);
     }
     if (flag === "--self-check") options.selfCheck = true;
@@ -64,7 +67,6 @@ function parseArgs(argv) {
     else if (flag === "--concurrency") (options.concurrency = Number(value)), (index += 1);
     else if (flag === "--timeout-s") (options.timeoutS = Number(value)), (index += 1);
     else if (flag === "--cases") (options.cases = value.split(",")), (index += 1);
-    else throw new Error(`unknown argument: ${flag}`);
   }
   if (!(Number.isInteger(options.reps) && options.reps >= 1 && options.reps <= MAX_REPS)) {
     throw new Error(`--reps must be a whole number from 1 to ${MAX_REPS}`);
