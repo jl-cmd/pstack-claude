@@ -1,0 +1,34 @@
+{
+  "request": "Close every finding in this run.",
+  "findings": [
+    {
+      "id": "A1",
+      "list": "Accepted",
+      "finding": "skills/release-notes/SKILL.md says the changelog lives in docs/CHANGES.md. The session found it at CHANGES.md in the repository root.",
+      "routing": "Trivial existing-skill edit: correct the stale path in skills/release-notes/SKILL.md."
+    },
+    {
+      "id": "A2",
+      "list": "Accepted",
+      "finding": "skills/db-migrate/SKILL.md has no rollback steps. The agent improvised a down migration and dropped a column that held data.",
+      "routing": "Substantive existing-skill edit: add a Rollback section to skills/db-migrate/SKILL.md."
+    },
+    {
+      "id": "A3",
+      "list": "Accepted",
+      "finding": "The user said a test keeps failing now and then. skills/flaky-test-triage/SKILL.md did not trigger, and the agent retried the suite five times.",
+      "routing": "tune description: skills/flaky-test-triage/SKILL.md"
+    },
+    {
+      "id": "B1",
+      "list": "Backlog",
+      "finding": "After each one-line edit the agent ran the full 14-minute test suite.",
+      "suggestion": "A PostToolUse hook that maps each changed file to its test files and prints the narrow test command.",
+      "tags": "tooling, ci"
+    }
+  ],
+  "cases": [
+    { "id": "close-all", "skill_source": "working-tree", "expect": "pass" },
+    { "id": "pre-patch-twin", "skill_source": "6bd8db9^", "expect": "fail" }
+  ]
+}

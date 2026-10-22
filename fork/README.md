@@ -45,6 +45,13 @@ node fork/evals/maintain-verification-target-lookup/run.mjs --out <results dir> 
 node fork/evals/reflect-spawn-briefs/run.mjs
 ```
 
+`fork/evals/reflect-close-all-model/` gives a headless `claude -p --model sonnet` the reflect step 5 text, four Accepted and Backlog rows, and a request to close every finding, then grades the plan it writes. The `close-all` case reads the working tree's SKILL.md and expects a pass. The `pre-patch-twin` case reads SKILL.md at `6bd8db9^` and expects a fail. Scores are in [its README](evals/reflect-close-all-model/README.md).
+
+```sh
+node fork/evals/reflect-close-all-model/run.mjs --self-check
+node fork/evals/reflect-close-all-model/run.mjs --out <results dir> --reps 3
+```
+
 ## Regenerate the merged hooks file
 
 After a commit that changes `fork/hooks.json`, rebuild `plugins/pstack/hooks/hooks.json` from that commit and commit the result:
