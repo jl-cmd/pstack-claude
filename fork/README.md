@@ -19,6 +19,7 @@ Each `fork/patches/*.patch` file is a `git diff` against upstream's tree. Each s
 | Patch | What it does |
 | ----- | ------------ |
 | `poteto-mode-haiku-slim.patch` | Adds the poteto-mode Haiku subagents section and `references/haiku-slim.md`. A Haiku role runs headless on the slim profile with `--autocompact 100k`. |
+| `maintain-verification-target-lookup.patch` | Makes maintain-verification-skill find its target page from a session the args name, look for that page on origin/main, open PR heads, then sibling worktrees, and report a duplicate or untracked driver before any feature-map edit. Declares the fork in `tools/forks.json`. |
 
 To change a patched file, edit it in place, then rewrite its patch from the synced upstream commit:
 
@@ -26,6 +27,15 @@ To change a patched file, edit it in place, then rewrite its patch from the sync
 git fetch --depth=1 https://github.com/michael-denyer/pstack-claude.git "$(cat .github/upstream-commit)"
 git add --intent-to-add -- plugins/pstack/skills/poteto-mode/
 git diff --no-color --src-prefix=a/ --dst-prefix=b/ FETCH_HEAD -- plugins/pstack/skills/poteto-mode/ > fork/patches/poteto-mode-haiku-slim.patch
+```
+
+## Evals
+
+`fork/evals/maintain-verification-target-lookup/` checks the plan a headless `claude -p` writes from the maintain-verification-skill text. It runs origin/main's SKILL.md as `baseline` and the working tree's as `v1`, and grades each plan's tool order. Each model call runs through `python ~/.claude/scripts/account_broker.py`, so a model run needs that broker script. `--self-check` grades fixed plans and makes no model call.
+
+```sh
+node fork/evals/maintain-verification-target-lookup/run.mjs --self-check
+node fork/evals/maintain-verification-target-lookup/run.mjs --out <results dir> --reps 3
 ```
 
 ## Regenerate the merged hooks file
