@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawn, execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -183,7 +184,13 @@ function runClaude(prompt, options, workDir) {
     let stdout = "";
     let stderr = "";
     const killTree = () => {
-      if (ownsProcessGroup) process.kill(-child.pid, "SIGKILL");
+      if (ownsProcessGroup) {
+        try {
+          process.kill(-child.pid, "SIGKILL");
+        } catch (error) {
+          if (error.code !== "ESRCH") throw error;
+        }
+      }
       else spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
     };
     const timer = setTimeout(killTree, options.timeoutS * 1000);
@@ -208,7 +215,7 @@ function parseResult(stdout) {
 }
 
 async function runOne(job, options) {
-  const { variant, testCase, rep, skill } = job;
+  const { variant, testCase, rep, skill, skillSha } = job;
   const variantDir = join(options.out, variant);
   const workDir = mkdtempSync(join(tmpdir(), "shop-app-"));
   const prompt = buildPrompt(skill, testCase);
@@ -226,6 +233,7 @@ async function runOne(job, options) {
       prompt_id: testCase.id,
       rep,
       variant,
+      skill_sha: skillSha,
       tags: testCase.tags,
       prompt: `/maintain-verification-skill ${testCase.args}`.trim(),
       status: "ok",
@@ -251,22 +259,16 @@ async function runOne(job, options) {
   }
 }
 
-function completedKeys(variantDir) {
+function readRows(variantDir, skillSha) {
   const path = join(variantDir, "results.jsonl");
-  if (!existsSync(path)) return new Set();
-  return new Set(
-    readFileSync(path, "utf8").split("\n").filter(Boolean).map((line) => {
-      const row = JSON.parse(line);
-      return `${row.prompt_id}#${row.rep}`;
-    }),
-  );
+  if (!existsSync(path)) return [];
+  return readFileSync(path, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line)).filter((row) => row.skill_sha === skillSha);
 }
 
-function summarize(options) {
+function summarize(options, shaByVariant) {
   for (const variant of options.variants) {
-    const path = join(options.out, variant, "results.jsonl");
-    if (!existsSync(path)) continue;
-    const rows = readFileSync(path, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line));
+    const rows = readRows(join(options.out, variant), shaByVariant.get(variant));
+    if (rows.length === 0) continue;
     const byTag = new Map();
     for (const row of rows) {
       const tag = row.tags[0];
@@ -287,14 +289,17 @@ async function main() {
   const allCases = JSON.parse(readFileSync(join(HERE, "cases.json"), "utf8"));
   const cases = options.cases ? allCases.filter((testCase) => options.cases.includes(testCase.id)) : allCases;
   const jobs = [];
+  const shaByVariant = new Map();
   for (const variant of options.variants) {
     const variantDir = join(options.out, variant);
     mkdirSync(join(variantDir, "traces"), { recursive: true });
-    const done = completedKeys(variantDir);
     const skill = skillText(variant, options);
+    const skillSha = createHash("sha256").update(skill).digest("hex").slice(0, 12);
+    shaByVariant.set(variant, skillSha);
+    const done = new Set(readRows(variantDir, skillSha).map((row) => `${row.prompt_id}#${row.rep}`));
     for (const testCase of cases) {
       for (let rep = 0; rep < options.reps; rep += 1) {
-        if (!done.has(`${testCase.id}#${rep}`)) jobs.push({ variant, testCase, rep, skill });
+        if (!done.has(`${testCase.id}#${rep}`)) jobs.push({ variant, testCase, rep, skill, skillSha });
       }
     }
   }
@@ -307,7 +312,7 @@ async function main() {
     }
   });
   await Promise.all(workers);
-  summarize(options);
+  summarize(options, shaByVariant);
 }
 
 await main();
