@@ -269,9 +269,9 @@ function summarize(options, cases, shaByCase) {
     const passed = rows.filter((row) => row.grade.pass).length;
     const checkTallies = Object.keys(rows[0]?.grade.checks ?? {}).map((name) => `${name} ${rows.filter((row) => row.grade.checks[name]).length}/${rows.length}`);
     const majorityPass = passed * 2 > rows.length;
-    const met = rows.length > 0 && (testCase.expect === "pass" ? majorityPass : passed * 2 < rows.length);
+    const met = rows.length === options.reps && (testCase.expect === "pass" ? majorityPass : passed * 2 < rows.length);
     if (!met) meetsExpectations = false;
-    console.log(`${testCase.id}: ${passed}/${rows.length} pass, expect ${testCase.expect} -> ${met ? "MET" : "NOT MET"} (${checkTallies.join(", ")})`);
+    console.log(`${testCase.id}: ${passed}/${rows.length} pass, ${options.reps - rows.length} errored, expect ${testCase.expect} -> ${met ? "MET" : "NOT MET"} (${checkTallies.join(", ")})`);
   }
   return meetsExpectations;
 }
