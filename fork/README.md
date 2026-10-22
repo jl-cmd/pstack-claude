@@ -19,6 +19,7 @@ Each `fork/patches/*.patch` file is a `git diff` against upstream's tree. Each s
 | Patch | What it does |
 | ----- | ------------ |
 | `poteto-mode-haiku-slim.patch` | Adds the poteto-mode Haiku subagents section and `references/haiku-slim.md`. A Haiku role runs headless on the slim profile with `--autocompact 100k`. |
+| `reflect-brief-contract.patch` | Has reflect step 2 append the brief contract lines a local spawn gate requires, such as `Outcome`, after each reviewer template. |
 
 To change a patched file, edit it in place, then rewrite its patch from the synced upstream commit:
 
