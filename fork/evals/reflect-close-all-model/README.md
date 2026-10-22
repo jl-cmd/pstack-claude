@@ -40,7 +40,7 @@ node fork/evals/reflect-close-all-model/run.mjs --out <results dir> --reps 3
 
 ## Scores
 
-Run on 2026-10-22 with `claude-sonnet-5-5` sampled with `run.mjs` at `32340a5` and regraded at `0f332fa`, 3 samples per case, $0.11 reported for all six calls.
+Run on 2026-10-22 with `claude-sonnet-5-5` sampled with `run.mjs` at `32340a5` and regraded at `0f332fa`, 3 samples per case, $0.11 reported for all six calls. Later commits change only process handling and argument checks, and leave the prompt, schema and grader as scored.
 
 | Case | Pass | Per check |
 | ---- | ---- | --------- |

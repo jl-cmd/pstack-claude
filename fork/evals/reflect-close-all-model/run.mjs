@@ -54,6 +54,9 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
     const value = argv[index + 1];
+    if (flag !== "--self-check" && (value === undefined || value.startsWith("--"))) {
+      throw new Error(`${flag} needs a value`);
+    }
     if (flag === "--self-check") options.selfCheck = true;
     else if (flag === "--out") (options.out = resolve(value)), (index += 1);
     else if (flag === "--reps") (options.reps = Number(value)), (index += 1);
@@ -63,8 +66,13 @@ function parseArgs(argv) {
     else if (flag === "--cases") (options.cases = value.split(",")), (index += 1);
     else throw new Error(`unknown argument: ${flag}`);
   }
-  if (!(options.reps >= 1 && options.reps <= MAX_REPS)) throw new Error(`--reps must be 1 to ${MAX_REPS}`);
-  if (!(options.concurrency >= 1)) throw new Error("--concurrency must be 1 or more");
+  if (!(Number.isInteger(options.reps) && options.reps >= 1 && options.reps <= MAX_REPS)) {
+    throw new Error(`--reps must be a whole number from 1 to ${MAX_REPS}`);
+  }
+  if (!(Number.isInteger(options.concurrency) && options.concurrency >= 1)) {
+    throw new Error("--concurrency must be a whole number of 1 or more");
+  }
+  if (!(Number.isFinite(options.timeoutS) && options.timeoutS > 0)) throw new Error("--timeout-s must be a number above 0");
   return options;
 }
 
