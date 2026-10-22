@@ -15,7 +15,7 @@ index 169341b..6f752fa 100644
  
  File each Backlog item to your team's devex or backlog tracker without waiting. Only the Accepted list waits for approval.
  
-+Close-all mode: when the user asks to close every finding in this run, that ask approves every Accepted row and replaces filing the Backlog. Draft a fix for each Accepted and Backlog row. Send each finding with its draft fix to two independent verifier agents, which confirm the fix or correct it. Land the verified fixes and leave no open-issue list. A row both verifiers reject goes back to the user with their reason.
++Close-all mode: when the user asks to close every finding in this run, that ask approves every Accepted row and replaces filing the Backlog. Draft a fix for each Accepted and Backlog row. Send each finding with its draft fix to two independent verifier agents, which confirm the fix or correct it. Route each Backlog row's fix by the list below, as an Accepted row would be. Land the verified fixes and leave no open-issue list. A row both verifiers reject goes back to the user with their reason. A row one verifier confirms and the other rejects goes back to the user with both reasons.
 +
  Follow each approved row's Routing exactly:
  

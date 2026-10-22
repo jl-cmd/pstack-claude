@@ -10,12 +10,14 @@ const REPO_ROOT = resolve(HERE, "..", "..", "..");
 const TEMPLATE_DIRECTORY = "plugins/pstack/skills/reflect/references";
 const OUTCOME_LINE = /^Outcome:.*$/m;
 const BLOCKER_LINE = /^On a blocker:.*$/m;
+const ALL_VARIANTS = ["baseline", "v1"];
+const GRADED_VARIANT = "v1";
 
 function parseArgs(argv) {
   const options = {
     hook: join(homedir(), ".claude", "hooks", "routing", "spawn_oversight_hook.py"),
     baseRef: "origin/main",
-    variants: ["baseline", "v1"],
+    variants: ALL_VARIANTS,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
@@ -25,6 +27,8 @@ function parseArgs(argv) {
     else if (flag === "--variants") (options.variants = value.split(",")), (index += 1);
     else throw new Error(`unknown flag: ${flag}`);
   }
+  const unknownVariants = options.variants.filter((variant) => !ALL_VARIANTS.includes(variant));
+  if (unknownVariants.length) throw new Error(`unknown variant: ${unknownVariants.join(",")}`);
   return options;
 }
 
@@ -69,7 +73,10 @@ function main() {
     summary[variant] = `${passed}/${allCases.length}`;
   }
   console.log(JSON.stringify(summary));
-  return Object.values(summary).every((score) => score.split("/")[0] === score.split("/")[1]) ? 0 : 1;
+  const gradedScore = summary[GRADED_VARIANT];
+  if (!gradedScore) return 0;
+  const [passedCount, caseCount] = gradedScore.split("/");
+  return passedCount === caseCount ? 0 : 1;
 }
 
 process.exitCode = main();
