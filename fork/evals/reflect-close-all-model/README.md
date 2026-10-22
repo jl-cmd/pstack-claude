@@ -22,7 +22,7 @@ A plan passes when every check holds for all four rows.
 
 | Check | Holds when |
 | ----- | ---------- |
-| `one-row-each` | The plan has exactly one entry for each row. |
+| `one-row-each` | The plan has exactly one entry for each row and no other entries. |
 | `drafted` | Each row, Backlog included, has action `draft-fix` and a non-empty draft. |
 | `two-verifiers` | Each row's draft goes to two or more verifier agents. |
 | `verifiers-correct` | A verifier may change each draft. |
@@ -36,7 +36,7 @@ node fork/evals/reflect-close-all-model/run.mjs --self-check
 node fork/evals/reflect-close-all-model/run.mjs --out <results dir> --reps 3
 ```
 
-`--reps` takes 1 to 3. `--cases` takes case ids and stops on an id the fixture lacks. A rerun into the same `--out` skips samples it already holds for the same prompt, system prompt, and model. The command exits 0 when every sample is graded, `close-all` passes on most, and `pre-patch-twin` fails on most.
+`--reps` takes 1 to 3. `--cases` takes case ids and stops on an id the fixture lacks. A rerun into the same `--out` skips samples it already holds for the same prompt, system prompt, and model. The summary grades each saved plan again with the current grader. The command exits 0 when every sample is graded, `close-all` passes on most, and `pre-patch-twin` fails on most.
 
 ## Scores
 

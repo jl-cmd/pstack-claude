@@ -79,7 +79,7 @@ export function gradePlan(findingIds, plan) {
   const rows = findingIds.map((id) => rowById.get(id));
   const everyRow = (predicate) => rows.every((row) => row !== undefined && predicate(row));
   const checks = {
-    "one-row-each": findingIds.every((id) => plan.rows.filter((row) => row.finding_id.trim() === id).length === 1),
+    "one-row-each": plan.rows.length === findingIds.length && findingIds.every((id) => plan.rows.filter((row) => row.finding_id.trim() === id).length === 1),
     drafted: everyRow((row) => row.action === "draft-fix" && row.draft_fix.trim().length > 0),
     "two-verifiers": everyRow((row) => row.verifier_count >= 2),
     "verifiers-correct": everyRow((row) => row.verifiers_may_correct === true),
@@ -113,6 +113,7 @@ function selfCheck(findingIds) {
     ["open item left", { ...oracle, open_items_after_run: ["B1"] }, false],
     ["row missing", { ...oracle, rows: oracle.rows.slice(1) }, false],
     ["applied unverified", withRow("A1", { action: "apply-unreviewed" }), false],
+    ["extra row", { ...oracle, rows: [...oracle.rows, { ...closeAllRow("B2"), action: "file-to-tracker" }] }, false],
     ["duplicate row", { ...oracle, rows: [...oracle.rows, { ...closeAllRow("B1"), action: "file-to-tracker" }].reverse() }, false],
   ];
   let failures = 0;
@@ -262,10 +263,12 @@ function readRows(caseDir, promptSha) {
   return readFileSync(path, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line)).filter((row) => row.prompt_sha === promptSha);
 }
 
-function summarize(options, cases, shaByCase) {
+function summarize(options, cases, shaByCase, findingIds) {
   let meetsExpectations = true;
   for (const testCase of cases) {
-    const rows = readRows(join(options.out, testCase.id), shaByCase.get(testCase.id)).filter((row) => row.rep < options.reps);
+    const rows = readRows(join(options.out, testCase.id), shaByCase.get(testCase.id))
+      .filter((row) => row.rep < options.reps)
+      .map((row) => ({ ...row, grade: gradePlan(findingIds, row.plan) }));
     const passed = rows.filter((row) => row.grade.pass).length;
     const checkTallies = Object.keys(rows[0]?.grade.checks ?? {}).map((name) => `${name} ${rows.filter((row) => row.grade.checks[name]).length}/${rows.length}`);
     const majorityPass = passed * 2 > rows.length;
@@ -305,7 +308,7 @@ async function main() {
     }
   });
   await Promise.all(workers);
-  process.exitCode = summarize(options, cases, shaByCase) ? 0 : 1;
+  process.exitCode = summarize(options, cases, shaByCase, fixture.findings.map((row) => row.id)) ? 0 : 1;
 }
 
 await main();
