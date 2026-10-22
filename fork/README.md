@@ -31,7 +31,7 @@ git diff --no-color --src-prefix=a/ --dst-prefix=b/ FETCH_HEAD -- plugins/pstack
 
 ## Evals
 
-`fork/evals/maintain-verification-target-lookup/` checks the plan a headless `claude -p` writes from the maintain-verification-skill text. It runs main's SKILL.md as `baseline` and the working tree's as `v1`, and grades each plan's tool order. `--self-check` grades fixed plans and makes no model call.
+`fork/evals/maintain-verification-target-lookup/` checks the plan a headless `claude -p` writes from the maintain-verification-skill text. It runs origin/main's SKILL.md as `baseline` and the working tree's as `v1`, and grades each plan's tool order. `--self-check` grades fixed plans and makes no model call.
 
 ```sh
 node fork/evals/maintain-verification-target-lookup/run.mjs --self-check

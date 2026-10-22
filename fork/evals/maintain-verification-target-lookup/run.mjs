@@ -40,7 +40,7 @@ function parseArgs(argv) {
     reps: 3,
     model: "claude-opus-5-5",
     effort: "medium",
-    baseRef: "main",
+    baseRef: "origin/main",
     concurrency: 4,
     timeoutS: 300,
     variants: ["baseline", "v1"],
@@ -167,10 +167,15 @@ function runClaude(prompt, options, workDir) {
     "--no-session-persistence",
   ];
   return new Promise((resolvePromise) => {
-    const child = spawn("python", args, { cwd: workDir, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+    const ownsProcessGroup = process.platform !== "win32";
+    const child = spawn("python", args, { cwd: workDir, windowsHide: true, detached: ownsProcessGroup, stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
-    const timer = setTimeout(() => child.kill(), options.timeoutS * 1000);
+    const killTree = () => {
+      if (ownsProcessGroup) process.kill(-child.pid, "SIGKILL");
+      else spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
+    };
+    const timer = setTimeout(killTree, options.timeoutS * 1000);
     child.stdout.on("data", (chunk) => (stdout += chunk));
     child.stderr.on("data", (chunk) => (stderr += chunk));
     child.on("close", (code) => {
