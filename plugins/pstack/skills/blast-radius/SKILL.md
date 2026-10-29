@@ -1,6 +1,6 @@
 ---
 name: blast-radius
-description: "Prove what breaks. Use for 'blast radius of X', 'what could this break', an untrusted diff, 'make X public', 'X already handles Y', or a brief that asserts something about existing code before design."
+description: "Use for 'blast radius of X', 'what could this break', reviewing a small diff you don't trust, or a brief that asserts something about existing code ('make X public', 'X already handles Y') before you design against that assertion."
 ---
 
 # Blast radius
