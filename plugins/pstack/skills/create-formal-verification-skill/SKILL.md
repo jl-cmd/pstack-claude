@@ -1,6 +1,6 @@
 ---
 name: create-formal-verification-skill
-description: "Generate a skill that formally verifies code where bugs cost most and tests miss. Use for /create-formal-verification-skill, 'model-check this race', or concurrency, retries, state machines, parsers."
+description: "Formally verify code where bugs cost most. Use for /create-formal-verification-skill, 'model-check this race', 'prove this invariant', or concurrency, retries, state machines, parsers, unsafe code."
 ---
 
 # Create a formal verification skill

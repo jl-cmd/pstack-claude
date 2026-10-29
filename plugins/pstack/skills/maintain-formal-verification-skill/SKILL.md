@@ -1,6 +1,6 @@
 ---
 name: maintain-formal-verification-skill
-description: "Realign formal verification with changed code, rerun it, and name drift or bugs. Use for /maintain-formal-verification-skill, 'is the model still true to the code', or after merges or refactors."
+description: "Realign formal checks to changes. Use for /maintain-formal-verification-skill, 'is the model still true to the code', or after merges and refactors that touched verified code without rechecking it."
 ---
 
 # Maintain a formal verification skill

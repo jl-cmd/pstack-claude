@@ -1,6 +1,6 @@
 ---
 name: create-verification-skill
-description: "Generate a project-local skill that drives your app like a user. Use for /create-verification-skill, 'make a control skill for this repo', 'make a driver skill for this repo', or a repo with no proof."
+description: "Drives your app like a user. Use for /create-verification-skill, 'make a control skill for this repo', 'make a driver skill for this repo', or when no script proves UI/CLI/service behavior."
 ---
 
 # Create a verification skill

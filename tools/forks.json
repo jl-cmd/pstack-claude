@@ -14,7 +14,7 @@
     },
     "plugins/pstack/skills/automate-me/SKILL.md": {
       "kind": "policy",
-      "why": "Shortens the skill description to 200 characters or less and keeps its trigger meaning.",
+      "why": "Shortens the skill description to 200 characters or less and keeps its triggers.",
       "since": "0.9.100",
       "upstream": "not-proposed"
     },
@@ -32,13 +32,13 @@
     },
     "plugins/pstack/skills/correct/SKILL.md": {
       "kind": "policy",
-      "why": "Shortens the skill description to 200 characters or less and keeps its trigger meaning.",
+      "why": "Shortens the skill description to 200 characters or less and keeps its triggers.",
       "since": "0.9.100",
       "upstream": "not-proposed"
     },
     "plugins/pstack/skills/create-formal-verification-skill/SKILL.md": {
       "kind": "policy",
-      "why": "Shortens the skill description to 200 characters or less and keeps its trigger meaning.",
+      "why": "Shortens the skill description to 200 characters or less and keeps its triggers.",
       "since": "0.9.100",
       "upstream": "not-proposed"
     },
@@ -50,13 +50,13 @@
     },
     "plugins/pstack/skills/how/SKILL.md": {
       "kind": "policy",
-      "why": "Shortens the skill description to 200 characters or less and keeps its trigger meaning.",
+      "why": "Shortens the skill description to 200 characters or less and keeps its triggers.",
       "since": "0.9.100",
       "upstream": "not-proposed"
     },
     "plugins/pstack/skills/maintain-formal-verification-skill/SKILL.md": {
       "kind": "policy",
-      "why": "Shortens the skill description to 200 characters or less and keeps its trigger meaning.",
+      "why": "Shortens the skill description to 200 characters or less and keeps its triggers.",
       "since": "0.9.100",
       "upstream": "not-proposed"
     },
@@ -326,7 +326,7 @@
     },
     "plugins/pstack/skills/why/SKILL.md": {
       "kind": "policy",
-      "why": "Shortens the skill description to 200 characters or less and keeps its trigger meaning.",
+      "why": "Shortens the skill description to 200 characters or less and keeps its triggers.",
       "since": "0.9.100",
       "upstream": "not-proposed"
     },

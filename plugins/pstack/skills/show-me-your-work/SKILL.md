@@ -1,6 +1,6 @@
 ---
 name: show-me-your-work
-description: "Keep a TSV log per decision: what, why, evidence, result. Local by default; commit when a reviewer needs it. Use for /show-me-your-work, autonomous or multi-phase runs, or work a human reviews later."
+description: "Log each decision to a TSV: what, why, evidence, result. Use for /show-me-your-work, long-running or unattended work, autonomous or multi-phase runs, or work a human reviews after stepping away."
 ---
 
 # Show me your work
