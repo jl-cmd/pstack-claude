@@ -1,6 +1,6 @@
 ---
 name: show-me-your-work
-description: "Log each decision to a TSV: what, why, evidence, result. Use for /show-me-your-work, long-running or unattended work, autonomous or multi-phase runs, or work a human reviews after stepping away."
+description: "Log each decision for long-running or unattended work to a TSV: what, why, evidence, result. Use for /show-me-your-work, autonomous or multi-phase runs, or work a human reviews after stepping away."
 ---
 
 # Show me your work
