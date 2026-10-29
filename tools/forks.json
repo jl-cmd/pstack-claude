@@ -20,7 +20,7 @@
     },
     "plugins/pstack/skills/blast-radius/SKILL.md": {
       "kind": "policy",
-      "why": "Extends the trigger to run before design when a brief asserts something about existing code.",
+      "why": "Extends the trigger to run before design when a brief asserts something about existing code, and shortens the rest of the description while keeping every trigger.",
       "since": "0.9.21",
       "upstream": "not-proposed"
     },
@@ -44,7 +44,7 @@
     },
     "plugins/pstack/skills/create-verification-skill/SKILL.md": {
       "kind": "port-feature",
-      "why": "Names the generated project skill verify so it replaces Claude Code's bundled user-only /verify and the playbooks can invoke it.",
+      "why": "Names the generated project skill verify so it replaces Claude Code's bundled user-only /verify and the playbooks can invoke it, and shortens the description to 200 characters or less while keeping every trigger.",
       "since": "0.9.29",
       "upstream": "not-proposed"
     },
@@ -266,7 +266,7 @@
     },
     "plugins/pstack/skills/recall/SKILL.md": {
       "kind": "policy",
-      "why": "Sweeps the locations the project's standing rules name before reporting anything as never recorded and applies the human-rulings epistemics, on top of Claude Code's transcript path.",
+      "why": "Sweeps the locations the project's standing rules name before reporting anything as never recorded and applies the human-rulings epistemics, on top of Claude Code's transcript path, and shortens the description to 200 characters or less while keeping every trigger.",
       "since": "0.9.2",
       "upstream": "not-proposed"
     },
@@ -308,7 +308,7 @@
     },
     "plugins/pstack/skills/show-me-your-work/SKILL.md": {
       "kind": "policy",
-      "why": "Documents that log.sh also neutralizes a cell opening with a double quote.",
+      "why": "Documents that log.sh also neutralizes a cell opening with a double quote, and shortens the description to 200 characters or less while keeping every trigger.",
       "since": "0.9.41",
       "upstream": "not-proposed"
     },
