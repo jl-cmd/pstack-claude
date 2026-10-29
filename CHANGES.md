@@ -2,9 +2,9 @@
 
 This file is the release changelog, with one `## <version> - <title>` entry per release, newest first. The Cursor-to-Claude rewrite rules live in [`tools/substitutions.json`](tools/substitutions.json), and the [sync boundary](CONTRIBUTING.md#the-sync-boundary) in `CONTRIBUTING.md` defines how a change to upstream's skill content is declared.
 
-## 0.9.100 - Ten long skill descriptions shortened, with every trigger kept
+## 0.9.100 - Ten long skill descriptions shortened to 200 characters or less, with every quoted trigger kept
 
-Ten skill descriptions were long, at 297 to 460 characters: `automate-me`, `blast-radius`, `correct`, `create-formal-verification-skill`, `create-verification-skill`, `how`, `maintain-formal-verification-skill`, `recall`, `show-me-your-work`, and `why`. Eight now run 200 characters or less. `blast-radius` (230 characters) and `how` (224 characters) keep their full trigger wording, so they run over the limit. Every quoted trigger phrase and trigger situation is kept verbatim, and the descriptive clauses went first. Claude Code loads every skill description into each session, so shorter descriptions cut the startup context. The six skills with no fork entry now have one in `tools/forks.json`, and the four that already had one add the shortening to their fork reason.
+Ten skill descriptions were long, at 297 to 460 characters: `automate-me`, `blast-radius`, `correct`, `create-formal-verification-skill`, `create-verification-skill`, `how`, `maintain-formal-verification-skill`, `recall`, `show-me-your-work`, and `why`. Each now runs 200 characters or less. Every quoted trigger phrase is kept verbatim, and the descriptive clauses went first. Two trigger situations in `blast-radius` are worded more briefly: "reviewing a small diff you don't trust" is now "a small diff you don't trust", and "before you design against that assertion" is now "before designing". `how` drops its "Use why for motivation." pointer. Claude Code loads every skill description into each session, so shorter descriptions cut the startup context. The six skills with no fork entry now have one in `tools/forks.json`, and the four that already had one add the shortening to their fork reason.
 
 ## 0.9.99 - Skills and plugins paths follow CLAUDE_CONFIG_DIR, and the transcript directory encoding is correct
 

@@ -20,7 +20,7 @@
     },
     "plugins/pstack/skills/blast-radius/SKILL.md": {
       "kind": "policy",
-      "why": "Extends the trigger to run before design when a brief asserts something about existing code, and shortens the rest of the description while keeping every trigger.",
+      "why": "Extends the trigger to run before design when a brief asserts something about existing code, and shortens the description to 200 characters or less while keeping its quoted triggers.",
       "since": "0.9.21",
       "upstream": "not-proposed"
     },
@@ -50,7 +50,7 @@
     },
     "plugins/pstack/skills/how/SKILL.md": {
       "kind": "policy",
-      "why": "Shortens the skill description and keeps every trigger, so it runs past 200 characters to keep the original trigger wording.",
+      "why": "Shortens the skill description to 200 characters or less and keeps its triggers.",
       "since": "0.9.100",
       "upstream": "not-proposed"
     },
