@@ -1,6 +1,6 @@
 ---
 name: recall
-description: "Rebuild recent context from chat, live state, and the shared record as a tight brief. Use for 'recall my work on X', 'catch me up', 'where did I leave off', or before saying it was never recorded."
+description: "Rebuild recent context from chat, live state, and the shared record. Use for 'recall my work on X', 'catch me up', 'what have I been working on', 'where did I leave off', or before resuming work."
 ---
 
 # Recall

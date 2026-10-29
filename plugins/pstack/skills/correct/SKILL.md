@@ -1,6 +1,6 @@
 ---
 name: correct
-description: "Make repeated agent mistakes in this repo impossible: architecture first, then types, a lint that names the fix, a test, and docs last. Prove each check fails on a past mistake. Use for /correct."
+description: "Make repeated agent mistakes in this repo impossible: architecture first, then types, a lint, a test, and docs last. Prove each check fails on a past mistake. Use for /correct or each correction."
 ---
 
 # Correct

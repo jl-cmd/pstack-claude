@@ -1,6 +1,6 @@
 ---
 name: why
-description: "Use for 'why does X work this way', 'why we picked Y', design rationale, regressions, or postmortems. Queries each evidence source in parallel and returns a cited read. Use how for runtime behavior."
+description: "Use for 'why does X work this way', 'why we picked Y', design rationale, regressions, postmortems, or data-backed thresholds. Queries sources in parallel and cites them. Use how for runtime behavior."
 ---
 
 # Why

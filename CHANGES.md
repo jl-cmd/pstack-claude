@@ -4,7 +4,7 @@ This file is the release changelog, with one `## <version> - <title>` entry per 
 
 ## 0.9.100 - Ten long skill descriptions shortened to 200 characters or less
 
-Ten skill descriptions ran past 300 characters: `automate-me`, `blast-radius`, `correct`, `create-formal-verification-skill`, `create-verification-skill`, `how`, `maintain-formal-verification-skill`, `recall`, `show-me-your-work`, and `why`. Each now runs 200 characters or less and keeps its trigger phrases. Claude Code loads every skill description into each session, so shorter descriptions cut the startup context. The six skills with no fork entry now have one in `tools/forks.json`, and the four that already had one keep their existing fork reason.
+Ten skill descriptions ran past 300 characters: `automate-me`, `blast-radius`, `correct`, `create-formal-verification-skill`, `create-verification-skill`, `how`, `maintain-formal-verification-skill`, `recall`, `show-me-your-work`, and `why`. Each now runs 200 characters or less and keeps its trigger meaning. A few example phrases are shortened or dropped, and the pull request lists them. Claude Code loads every skill description into each session, so shorter descriptions cut the startup context. The six skills with no fork entry now have one in `tools/forks.json`, and the four that already had one keep their existing fork reason.
 
 ## 0.9.99 - Skills and plugins paths follow CLAUDE_CONFIG_DIR, and the transcript directory encoding is correct
 

@@ -1,6 +1,6 @@
 ---
 name: automate-me
-description: "Use for 'automate me', 'create or refresh my -mode skill', or 'capture my preferences or working style'. Drafts it with plugin-dev:skill-development and unslop, using recent transcripts if useful."
+description: "Use for 'automate me', 'create or refresh my -mode skill', 'capture my preferences or working style', or wanting agents to follow how I work. Drafts it from recent transcripts if useful."
 ---
 
 # Automate me

@@ -1,6 +1,6 @@
 ---
 name: how
-description: "Use for 'how does X work', code walkthroughs before a change, and placement or layering questions like 'which package owns this'. Explains architecture and runtime flow. Use why for motivation."
+description: "Use for 'how does X work', code walkthroughs before a change, and placement questions like 'where should this live'. Explains architecture and runtime flow. Use why for motivation."
 ---
 
 # How
