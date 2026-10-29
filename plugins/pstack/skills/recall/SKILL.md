@@ -1,6 +1,6 @@
 ---
 name: recall
-description: "Rebuild recent context. Use for 'recall my work on X', 'catch me up', 'what have I been working on', 'where did I leave off', before starting or resuming work, or before saying it was never recorded."
+description: "Use for 'recall my work on X', 'catch me up', 'what have I been working on', 'where did I leave off', before starting or resuming work, or before telling the user that something was never recorded."
 ---
 
 # Recall
