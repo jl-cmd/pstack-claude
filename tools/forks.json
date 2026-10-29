@@ -50,7 +50,7 @@
     },
     "plugins/pstack/skills/how/SKILL.md": {
       "kind": "policy",
-      "why": "Shortens the skill description to 200 characters or less and keeps its triggers.",
+      "why": "Shortens the skill description and keeps every trigger, so it runs past 200 characters to keep the original trigger wording.",
       "since": "0.9.100",
       "upstream": "not-proposed"
     },
