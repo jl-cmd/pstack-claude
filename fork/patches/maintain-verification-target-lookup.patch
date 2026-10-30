@@ -12,10 +12,10 @@ index ddf4fac..f0f1fc7 100644
  1. **Index hygiene.** Read the feature map README and glob its sibling files. Fix missing, extra, duplicate, or dead entries. Lightweight; no generated inventory.
  
 diff --git a/tools/forks.json b/tools/forks.json
-index 6851e6a..2f03c84 100644
+index 59e6acc..f68a836 100644
 --- a/tools/forks.json
 +++ b/tools/forks.json
-@@ -30,6 +30,12 @@
+@@ -36,6 +36,12 @@
        "since": "0.9.29",
        "upstream": "not-proposed"
      },
@@ -25,6 +25,6 @@ index 6851e6a..2f03c84 100644
 +      "since": "0.9.99",
 +      "upstream": "not-proposed"
 +    },
-     "plugins/pstack/skills/poteto-help/SKILL.md": {
-       "kind": "port-feature",
-       "why": "Routes installation, model-sheet loading, and persistent routing preferences to the current runtime's setup sources, gives installed playbooks precedence over upstream guides, and keeps the port's public skill loading, hidden principles, verification-skill naming, local-worker advice, driver and built-in equivalents, excluded make-bot-ui row, and orchestrate wording as prose changes in this fork.",
+     "plugins/pstack/skills/no-comments/SKILL.md": {
+       "kind": "policy",
+       "why": "Treats a HOLD that names its dependency, platform, vendor, or protocol rule and where to check it as settled for the run, restores as a HOLD any kill of such a comment without a refuting page or file, and limits a second rejected report's failure to that report's findings so the accepted work still lands.",
