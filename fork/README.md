@@ -32,14 +32,14 @@ git diff --no-color --src-prefix=a/ --dst-prefix=b/ FETCH_HEAD -- plugins/pstack
 
 ## Evals
 
-`fork/evals/maintain-verification-target-lookup/` checks the plan a headless `claude -p` writes from the maintain-verification-skill text. It runs origin/main's SKILL.md as `baseline` and the working tree's as `v1`, and grades each plan's tool order. Each model call runs through `python ~/.claude/scripts/account_broker.py`, so a model run needs that broker script. `--self-check` grades fixed plans and makes no model call.
+`fork/evals/maintain-verification-target-lookup/` checks the plan a headless `claude -p` writes from the maintain-verification-skill text. It runs origin/main's SKILL.md as `baseline` and the working tree's as `v1`, and grades each plan's tool order. Each model call runs through `python ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/scripts/account_broker.py`, so a model run needs that broker script. `--self-check` grades fixed plans and makes no model call.
 
 ```sh
 node fork/evals/maintain-verification-target-lookup/run.mjs --self-check
 node fork/evals/maintain-verification-target-lookup/run.mjs --out <results dir> --reps 3
 ```
 
-`fork/evals/reflect-spawn-briefs/` feeds each reflect reviewer and synthesizer template to a spawn hook as an `Agent` prompt and grades the hook's allow or deny. It runs origin/main's templates as `baseline` and the working tree's as `v1`. Twin cases drop the `Outcome:` or `On a blocker:` line and expect a deny. It makes no model call. `--hook` names the hook file; the default is `~/.claude/hooks/routing/spawn_oversight_hook.py`.
+`fork/evals/reflect-spawn-briefs/` feeds each reflect reviewer and synthesizer template to a spawn hook as an `Agent` prompt and grades the hook's allow or deny. It runs origin/main's templates as `baseline` and the working tree's as `v1`. Twin cases drop the `Outcome:` or `On a blocker:` line and expect a deny. It makes no model call. `--hook` names the hook file; the default is `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/routing/spawn_oversight_hook.py`.
 
 ```sh
 node fork/evals/reflect-spawn-briefs/run.mjs
