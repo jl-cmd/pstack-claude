@@ -1,5 +1,5 @@
 diff --git a/plugins/pstack/skills/reflect/SKILL.md b/plugins/pstack/skills/reflect/SKILL.md
-index 169341b..c8282dd 100644
+index 045f10a..6faea10 100644
 --- a/plugins/pstack/skills/reflect/SKILL.md
 +++ b/plugins/pstack/skills/reflect/SKILL.md
 @@ -39,7 +39,7 @@ Each reviewer and the synthesizer name a role line in `pstack-models.md` and a d
@@ -17,9 +17,9 @@ index 169341b..c8282dd 100644
  
 +Close-all mode: when the user asks to close every finding in this run, that ask approves every Accepted row and replaces filing the Backlog. Draft a fix for each Accepted and Backlog row: an Accepted fix follows its Routing below, and a Backlog fix builds the mechanism its item suggests. Send each finding with its draft fix to two independent verifier agents, which confirm the fix, correct it, or reject it. A corrected fix goes back to the other verifier and lands once that verifier confirms it. Land the verified fixes and leave no open-issue list. Any other row, where a verifier rejects the draft or a correction, goes back to the user with each verifier's reason.
 +
- Follow each approved row's Routing exactly:
+ Never edit a skill under `plugins/cache/`. Before approval, show its destination, `.claude/skills/<skill>/` or `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/<skill>/`. After approval, copy the skill folder there and edit the copy. Never open a PR or push.
  
- - Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): the parent does it directly.
+ Follow each approved row's Routing exactly:
 diff --git a/plugins/pstack/skills/reflect/references/divergent-reviewer.md b/plugins/pstack/skills/reflect/references/divergent-reviewer.md
 index beb3132..09f7ae5 100644
 --- a/plugins/pstack/skills/reflect/references/divergent-reviewer.md
@@ -68,15 +68,15 @@ index 96cd989..007b609 100644
 +
  <DIGEST IF FILE PATH UNAVAILABLE>
 diff --git a/tools/forks.json b/tools/forks.json
-index 2f03c84..49fe1f0 100644
+index f68a836..5e0c8e8 100644
 --- a/tools/forks.json
 +++ b/tools/forks.json
-@@ -242,10 +242,34 @@
+@@ -254,10 +254,34 @@
      },
      "plugins/pstack/skills/reflect/SKILL.md": {
        "kind": "port-feature",
--      "why": "Finds the session transcript with the port's find-transcript.mjs under Claude Code's projects directory, keeps the parent's conclusions out of the reviewer prompts (a fallback digest records events without a verdict, and nothing goes beside a transcript path), and drops Cursor's readonly agent mode and inline model column.",
-+      "why": "Finds the session transcript with the port's find-transcript.mjs under Claude Code's projects directory, keeps the parent's conclusions out of the reviewer prompts (a fallback digest records events without a verdict, and nothing goes beside a transcript path), drops Cursor's readonly agent mode and inline model column, lets the reviewer and synthesizer prompts carry their Outcome and On a blocker lines, and adds a close-all mode that fixes and independently verifies every row in the same run.",
+-      "why": "Finds the session transcript with the port's find-transcript.mjs under the Claude Code projects directory that claude-project-dir.mjs prints, keeps the parent's conclusions out of the reviewer prompts (a fallback digest records events without a verdict, and nothing goes beside a transcript path), and drops Cursor's readonly agent mode and inline model column.",
++      "why": "Finds the session transcript with the port's find-transcript.mjs under the Claude Code projects directory that claude-project-dir.mjs prints, keeps the parent's conclusions out of the reviewer prompts (a fallback digest records events without a verdict, and nothing goes beside a transcript path), drops Cursor's readonly agent mode and inline model column, lets the reviewer and synthesizer prompts carry their Outcome and On a blocker lines, and adds a close-all mode that fixes and independently verifies every row in the same run.",
        "since": "0.1.0",
        "upstream": "not-proposed"
      },
